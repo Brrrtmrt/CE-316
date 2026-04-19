@@ -1,0 +1,14 @@
+{
+  "name": "C Programming",
+  "language": "C",
+  "fileExtension": ".c",
+  "compileCommand": {
+    "executable": "/usr/bin/gcc",
+    "arguments": ["{src}", "-o", "{out}"]
+  },
+  "runCommand": {
+    "executable": "{out}",
+    "arguments": ["{args}"]
+  },
+  "comparisonMethod": "exact"
+}
