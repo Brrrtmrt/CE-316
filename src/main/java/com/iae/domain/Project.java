@@ -1,20 +1,31 @@
 package com.iae.domain;
 
 public class Project {
+    private Configuration configuration;
+    private String submissionsDirectory;
+    private String[] programArguments;
+    private String expectedOutput;
+
+    public Project(Configuration configuration, String submissionsDirectory, String[] programArguments, String expectedOutput) {
+        this.configuration = configuration;
+        this.submissionsDirectory = submissionsDirectory;
+        this.programArguments = programArguments;
+        this.expectedOutput = expectedOutput;
+    }
 
     public Configuration getConfiguration() {
-        return null;
+        return configuration;
     }
 
     public String getSubmissionsDirectory() {
-        return null;
+        return submissionsDirectory;
     }
 
     public String[] getProgramArguments() {
-        return null;
+        return programArguments;
     }
 
     public String getExpectedOutput() {
-        return null;
+        return expectedOutput;
     }
 }
