@@ -1,0 +1,9 @@
+{
+  "name": "Java 17",
+  "language": "Java",
+  "fileExtension": ".java",
+  "compileCommand": "javac -d out {src}",
+  "runCommand": "java -cp out Main {args}",
+  "comparisonMethod": "exact",
+  "description": "Java 17 compiled language configuration"
+}

@@ -1,0 +1,9 @@
+{
+  "name": "Python 3",
+  "language": "Python",
+  "fileExtension": ".py",
+  "compileCommand": "",
+  "runCommand": "python3 {src} {args}",
+  "comparisonMethod": "trim_lines",
+  "description": "Python 3 interpreted language configuration"
+}
