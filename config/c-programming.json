@@ -2,13 +2,8 @@
   "name": "C Programming",
   "language": "C",
   "fileExtension": ".c",
-  "compileCommand": {
-    "executable": "/usr/bin/gcc",
-    "arguments": ["{src}", "-o", "{out}"]
-  },
-  "runCommand": {
-    "executable": "{out}",
-    "arguments": ["{args}"]
-  },
-  "comparisonMethod": "exact"
+  "compileCommand": "gcc {src} -o {out}",
+  "runCommand": "{out} {args}",
+  "comparisonMethod": "exact",
+  "description": "C language compiled configuration using GCC"
 }
