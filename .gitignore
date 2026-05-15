@@ -65,3 +65,6 @@ replay_pid*
 *.db
 *.db3
 *.sqlite3
+
+# AI working notes
+CLAUDE_CONTEXT.md
