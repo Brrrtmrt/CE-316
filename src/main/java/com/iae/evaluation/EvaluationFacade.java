@@ -151,7 +151,7 @@ public class EvaluationFacade {
         EvaluationResult result = new EvaluationResult(studentId);
 
 
-        UnzipStep unzipStep = new UnzipStep();
+        UnzipStep unzipStep = new UnzipStep(config);
         StepResult unzipResult = unzipStep.execute(submission);
         result.setUnzipSuccess(unzipResult.isSuccess());
 
