@@ -120,9 +120,12 @@ public class ConfigurationManager {
 
             if (configs == null) {
                 System.out.println("No configurations found on disk (loadAllConfigurations returned null).");
+                configurationCache.clear(); // Disk boşsa/okunamadıysa belleği de sıfırla ki senkronize kalsın
                 return;
             }
-            // -----------------------------------------------------
+
+            // -> ASIL DÜZELTME BURASI: Diskten gelen temiz verileri yüklemeden önce eski belleği uçuruyoruz <-
+            configurationCache.clear();
 
             for (Configuration config : configs) {
                 configurationCache.put(config.getName(), config);
