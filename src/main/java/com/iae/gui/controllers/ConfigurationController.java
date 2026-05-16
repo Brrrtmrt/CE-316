@@ -1,5 +1,7 @@
 package com.iae.gui.controllers;
 
+import java.io.File;
+
 import com.iae.domain.Configuration;
 import com.iae.domain.ConfigurationBuilder;
 import com.iae.evaluation.strategies.ComparisonStrategy;
@@ -33,6 +35,8 @@ public class ConfigurationController {
     @FXML private Label lblStatus;
 
     private ConfigurationManager configManager;
+    
+    private String currentLoadedDescription = "";
 
     @FXML
     public void initialize() {
@@ -40,7 +44,6 @@ public class ConfigurationController {
         cmbComparisonStrategy.getItems().addAll("Exact Match", "Ignore Whitespace", "Trim Lines");
 
         btnSave.setOnAction(event -> saveConfiguration());
-        
         btnUpdate.setOnAction(event -> updateConfiguration());
         btnDelete.setOnAction(event -> deleteConfiguration());
 
@@ -67,10 +70,18 @@ public class ConfigurationController {
             txtFileExtension.setText(config.getFileExtension());
             
             String desc = config.getDescription();
-            if (desc != null && desc.startsWith("Compiler Path: ")) {
-                txtCompilerPath.setText(desc.replace("Compiler Path: ", ""));
+            if (desc != null) {
+                int idx = desc.indexOf("Compiler Path: ");
+                if (idx != -1) {
+                    txtCompilerPath.setText(desc.substring(idx + "Compiler Path: ".length()).trim());
+                    currentLoadedDescription = desc.substring(0, idx).trim(); 
+                } else {
+                    txtCompilerPath.setText("");
+                    currentLoadedDescription = desc; // İçinde path yoksa tamamını yedeğe al
+                }
             } else {
                 txtCompilerPath.setText("");
+                currentLoadedDescription = "";
             }
             
             txtCompileCommand.setText(config.getCompileCommand() != null ? config.getCompileCommand() : "");
@@ -109,7 +120,6 @@ public class ConfigurationController {
         }
 
         Configuration backup = configManager.getConfiguration(selected);
-
         configManager.removeConfiguration(selected);
         
         saveConfiguration();
@@ -120,6 +130,11 @@ public class ConfigurationController {
             }
         } else {
             String updatedName = txtConfigName.getText().trim();
+            if (!selected.equals(updatedName)) {
+                File oldFile = new File("config/" + selected + ".json");
+                if (oldFile.exists()) oldFile.delete();
+            }
+            
             if (!updatedName.isEmpty() && !selected.equals(updatedName)) {
                 listViewConfigs.getSelectionModel().select(updatedName);
             }
@@ -141,6 +156,11 @@ public class ConfigurationController {
             configManager.removeConfiguration(selected);
             configManager.saveAllConfigurations(); 
             
+            File fileToDelete = new File("config/" + selected + ".json");
+            if (fileToDelete.exists()) {
+                fileToDelete.delete();
+            }
+            
             refreshList();
             
             txtConfigName.clear();
@@ -149,6 +169,7 @@ public class ConfigurationController {
             txtCompileCommand.clear();
             txtRunCommand.clear();
             cmbComparisonStrategy.setValue(null);
+            currentLoadedDescription = ""; 
 
             lblStatus.setText("Configuration deleted successfully!");
             lblStatus.setTextFill(Color.GREEN);
@@ -190,6 +211,12 @@ public class ConfigurationController {
                 strategyObj = new ExactMatchStrategy(); 
             }
 
+            String finalDesc = currentLoadedDescription;
+            if (compilerPath != null && !compilerPath.trim().isEmpty()) {
+                if (!finalDesc.isEmpty()) finalDesc += "\n";
+                finalDesc += "Compiler Path: " + compilerPath;
+            }
+
             Configuration newConfig = new ConfigurationBuilder()
                     .setName(name)
                     .setLanguage(name)
@@ -197,7 +224,7 @@ public class ConfigurationController {
                     .setCompileCommand(compileCmd)
                     .setRunCommand(runCmd)
                     .setComparisonStrategy(strategyObj)
-                    .setDescription("Compiler Path: " + compilerPath) 
+                    .setDescription(finalDesc) 
                     .build();
 
             try {
