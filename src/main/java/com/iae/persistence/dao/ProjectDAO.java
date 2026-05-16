@@ -21,22 +21,16 @@ import java.util.List;
  *   <li>Corrected package declaration (trailing dot removed).</li>
  *   <li>{@code mapConfiguration()} now uses {@link ConfigurationBuilder} with
  *       the correct field names that match both the domain class and the
- *       schema columns ({@code config_name}, {@code language},
- *       {@code file_extension}, {@code compile_command}, {@code run_command},
- *       {@code comparison_strategy}, {@code description}).</li>
- *   <li>All SQL column names now match {@code schema.sql} exactly:
- *       {@code submissions_directory}, {@code program_arguments},
- *       {@code expected_output}.</li>
- *   <li>Added {@code save}, {@code update}, {@code delete}, {@code findAll}
- *       to complete the required CRUD surface.</li>
+ *       schema columns.</li>
+ *   <li>All SQL column names now match {@code schema.sql} exactly.</li>
+ *   <li>SQLite compatibility applied: Replaced unsupported getGeneratedKeys()
+ *       with last_insert_rowid().</li>
  * </ul>
  *
  * @author Dev 1
- * @version 1.1
+ * @version 1.2
  */
 public class ProjectDAO extends BaseDAO {
-
-
 
     /**
      * Finds a project by its primary key.
@@ -83,11 +77,12 @@ public class ProjectDAO extends BaseDAO {
         return projects;
     }
 
-
-
     /**
      * Inserts a new project row and sets the generated id back on the domain
      * object via {@link Project#setId(String)}.
+     *
+     * FIXED: Replaced Statement.RETURN_GENERATED_KEYS with SQLite's last_insert_rowid()
+     * to avoid SQLFeatureNotSupportedException.
      *
      * @param project the project to persist
      * @throws SQLException on any database error
@@ -102,8 +97,7 @@ public class ProjectDAO extends BaseDAO {
                 """;
 
         try (Connection conn = DatabaseManager.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(
-                     sql, Statement.RETURN_GENERATED_KEYS)) {
+             PreparedStatement stmt = conn.prepareStatement(sql)) { // Cleaned: Removed RETURN_GENERATED_KEYS flag
 
             Configuration cfg = project.getConfiguration();
             stmt.setString(1,  project.getName());
@@ -120,9 +114,11 @@ public class ProjectDAO extends BaseDAO {
 
             stmt.executeUpdate();
 
-            try (ResultSet keys = stmt.getGeneratedKeys()) {
-                if (keys.next()) {
-                    project.setId(String.valueOf(keys.getInt(1)));
+            // Safe & Native SQLite approach to fetch the auto-incremented primary key
+            try (Statement idStmt = conn.createStatement();
+                 ResultSet rs = idStmt.executeQuery("SELECT last_insert_rowid()")) {
+                if (rs.next()) {
+                    project.setId(String.valueOf(rs.getInt(1)));
                 }
             }
         }
@@ -197,8 +193,6 @@ public class ProjectDAO extends BaseDAO {
         }
     }
 
-
-
     /**
      * Maps a {@link ResultSet} row to a {@link Project} domain object.
      * Column names match {@code schema.sql} exactly.
@@ -226,11 +220,6 @@ public class ProjectDAO extends BaseDAO {
     /**
      * Builds a {@link Configuration} from the embedded columns in the
      * {@code projects} table.
-     *
-     * <p>FIXED: previously passed wrong fields to the {@code Configuration}
-     * constructor ({@code source_dir}, {@code output_dir}, {@code test_dir}
-     * which do not exist in the domain model or schema).  Now uses
-     * {@link ConfigurationBuilder} with the correct field names.</p>
      */
     private Configuration mapConfiguration(ResultSet rs) throws SQLException {
         ComparisonStrategy strategy = resolveStrategy(
@@ -247,8 +236,6 @@ public class ProjectDAO extends BaseDAO {
                 .build();
     }
 
-
-
     private ComparisonStrategy resolveStrategy(String key) {
         if (key == null) return new ExactMatchStrategy();
         return switch (key.toLowerCase()) {
@@ -263,8 +250,6 @@ public class ProjectDAO extends BaseDAO {
         if (strategy instanceof TrimLinesStrategy)        return "trim_lines";
         return "exact";
     }
-
-
 
     /** Joins a {@code String[]} to a comma-separated value for storage. */
     private String joinArgs(String[] args) {

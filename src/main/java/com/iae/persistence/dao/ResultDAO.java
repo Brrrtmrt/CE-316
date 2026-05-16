@@ -14,19 +14,16 @@ import java.util.List;
  * <ul>
  *   <li>All four methods were stubs returning empty/null.  They are now fully
  *       implemented against the schema defined in {@code schema.sql}.</li>
- *   <li>Column names match the schema exactly: {@code project_id},
- *       {@code student_id}, {@code unzip_success}, {@code compile_success},
- *       {@code run_success}, {@code output_match}, {@code error_log},
- *       {@code status}.</li>
- *   <li>{@code projectId} is stored as an {@code INTEGER} in the database, so
- *       it is parsed with {@code Integer.parseInt()} before binding.</li>
+ *   <li>Column names match the schema exactly.</li>
+ *   <li>Fixed overwrite behavior: Replaced native 'INSERT OR REPLACE' with a safe
+ *       Delete-Before-Insert cycle to guarantee idempotent test outcomes without
+ *       modifying schema.sql constraints.</li>
  * </ul>
  *
  * @author Dev 1
- * @version 1.1
+ * @version 1.2
  */
 public class ResultDAO extends BaseDAO {
-
 
     /**
      * Returns all evaluation results for a given project.
@@ -89,40 +86,51 @@ public class ResultDAO extends BaseDAO {
         return null;
     }
 
-
     /**
      * Inserts or replaces the evaluation result for a student in a project.
      *
-     * <p>Uses {@code INSERT OR REPLACE} so that re-running an evaluation
-     * overwrites the previous result for the same
-     * {@code (project_id, student_id)} pair without needing a separate
-     * update method.</p>
+     * FIXED: Explicitly deletes the existing row for the given (project_id, student_id)
+     * pair right before injecting the new one. This ensures absolute compatibility
+     * with the shared schema structure.
      *
      * @param projectId the project's database id
      * @param result    the evaluation result to persist
      */
     public void save(String projectId, EvaluationResult result) {
-        String sql = """
-                INSERT OR REPLACE INTO evaluation_results
+        String deleteSql = "DELETE FROM evaluation_results WHERE project_id = ? AND student_id = ?";
+        String insertSql = """
+                INSERT INTO evaluation_results
                     (project_id, student_id,
                      unzip_success, compile_success, run_success, output_match,
                      error_log, status)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
-        try (Connection conn = DatabaseManager.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
+        try (Connection conn = DatabaseManager.getConnection()) {
 
-            stmt.setInt(1,    Integer.parseInt(projectId));
-            stmt.setString(2, result.getStudentId());
-            stmt.setInt(3,    result.isUnzipSuccess()   ? 1 : 0);
-            stmt.setInt(4,    result.isCompileSuccess()  ? 1 : 0);
-            stmt.setInt(5,    result.isRunSuccess()      ? 1 : 0);
-            stmt.setInt(6,    result.isOutputMatch()     ? 1 : 0);
-            stmt.setString(7, result.getErrorLog());
-            stmt.setString(8, result.getStatus().name());
+            // 1. Clean up stale historical results for this specific student first
+            try (PreparedStatement delStmt = conn.prepareStatement(deleteSql)) {
+                delStmt.setInt(1, Integer.parseInt(projectId));
+                delStmt.setString(2, result.getStudentId());
+                delStmt.executeUpdate();
+            }
 
-            stmt.executeUpdate();
+            // 2. Insert the fresh payload safely
+            try (PreparedStatement insStmt = conn.prepareStatement(insertSql)) {
+                insStmt.setInt(1,    Integer.parseInt(projectId));
+                insStmt.setString(2, result.getStudentId());
+                insStmt.setInt(3,    result.isUnzipSuccess()   ? 1 : 0);
+                insStmt.setInt(4,    result.isCompileSuccess()  ? 1 : 0);
+                insStmt.setInt(5,    result.isRunSuccess()      ? 1 : 0);
+                insStmt.setInt(6,    result.isOutputMatch()     ? 1 : 0);
+                insStmt.setString(7, result.getErrorLog());
+
+                // Safe Enum Name check
+                String statusStr = (result.getStatus() != null) ? result.getStatus().name() : "COMPLETED";
+                insStmt.setString(8, statusStr);
+
+                insStmt.executeUpdate();
+            }
 
         } catch (SQLException e) {
             System.err.println("ResultDAO.save failed for student "
@@ -150,8 +158,6 @@ public class ResultDAO extends BaseDAO {
         }
     }
 
-
-
     /**
      * Maps a {@link ResultSet} row to an {@link EvaluationResult}.
      * SQLite stores booleans as integers (0/1).
@@ -163,7 +169,6 @@ public class ResultDAO extends BaseDAO {
         result.setRunSuccess(rs.getInt("run_success")       == 1);
         result.setOutputMatch(rs.getInt("output_match")     == 1);
         result.setErrorLog(rs.getString("error_log"));
-        // status is derived in getStatus(); the stored column is informational only
         return result;
     }
 }
