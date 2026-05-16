@@ -35,8 +35,6 @@ public class ConfigurationController {
     @FXML private Label lblStatus;
 
     private ConfigurationManager configManager;
-    
-    private String currentLoadedDescription = "";
 
     @FXML
     public void initialize() {
@@ -74,14 +72,11 @@ public class ConfigurationController {
                 int idx = desc.indexOf("Compiler Path: ");
                 if (idx != -1) {
                     txtCompilerPath.setText(desc.substring(idx + "Compiler Path: ".length()).trim());
-                    currentLoadedDescription = desc.substring(0, idx).trim(); 
                 } else {
                     txtCompilerPath.setText("");
-                    currentLoadedDescription = desc; // İçinde path yoksa tamamını yedeğe al
                 }
             } else {
                 txtCompilerPath.setText("");
-                currentLoadedDescription = "";
             }
             
             txtCompileCommand.setText(config.getCompileCommand() != null ? config.getCompileCommand() : "");
@@ -100,23 +95,26 @@ public class ConfigurationController {
     private void updateConfiguration() {
         String selected = listViewConfigs.getSelectionModel().getSelectedItem();
         if (selected == null) {
-            lblStatus.setText("Please select a config from the list to update!");
+            lblStatus.setText("Please select a config to update!");
             lblStatus.setTextFill(Color.RED);
             lblStatus.setVisible(true);
             return;
         }
 
-        String name = txtConfigName.getText();
-        String extension = txtFileExtension.getText();
-        String runCmd = txtRunCommand.getText();
-
-        if(name == null || name.trim().isEmpty() || 
-           extension == null || extension.trim().isEmpty() || 
-           runCmd == null || runCmd.trim().isEmpty()) {
-            lblStatus.setText("Please fill required fields (Name, Extension, Run Command)!");
+        String newName = txtConfigName.getText();
+        if(newName == null || newName.trim().isEmpty()) {
+            lblStatus.setText("Name cannot be empty!");
             lblStatus.setTextFill(Color.RED);
             lblStatus.setVisible(true);
             return; 
+        }
+        newName = newName.trim();
+
+        if (!selected.equals(newName) && configManager.getConfiguration(newName) != null) {
+            lblStatus.setText("A configuration with this new name already exists!");
+            lblStatus.setTextFill(Color.RED);
+            lblStatus.setVisible(true);
+            return;
         }
 
         Configuration backup = configManager.getConfiguration(selected);
@@ -129,14 +127,15 @@ public class ConfigurationController {
                 try { configManager.addConfiguration(backup); } catch(Exception ex) {}
             }
         } else {
-            String updatedName = txtConfigName.getText().trim();
-            if (!selected.equals(updatedName)) {
-                File oldFile = new File("config/" + selected + ".json");
-                if (oldFile.exists()) oldFile.delete();
+            if (!selected.equals(newName)) {
+                try {
+                    deletePhysicalFile(selected);
+                } catch (Exception e) {
+                    System.out.println("Warning: " + e.getMessage());
+                }
             }
-            
-            if (!updatedName.isEmpty() && !selected.equals(updatedName)) {
-                listViewConfigs.getSelectionModel().select(updatedName);
+            if (!newName.isEmpty() && !selected.equals(newName)) {
+                listViewConfigs.getSelectionModel().select(newName);
             }
         }
     }
@@ -144,7 +143,7 @@ public class ConfigurationController {
     private void deleteConfiguration() {
         String selected = listViewConfigs.getSelectionModel().getSelectedItem();
         if (selected == null) {
-            lblStatus.setText("Please select a config from the list to delete!");
+            lblStatus.setText("Please select a config to delete!");
             lblStatus.setTextFill(Color.RED);
             lblStatus.setVisible(true);
             return;
@@ -156,10 +155,7 @@ public class ConfigurationController {
             configManager.removeConfiguration(selected);
             configManager.saveAllConfigurations(); 
             
-            File fileToDelete = new File("config/" + selected + ".json");
-            if (fileToDelete.exists()) {
-                fileToDelete.delete();
-            }
+            deletePhysicalFile(selected); 
             
             refreshList();
             
@@ -169,7 +165,6 @@ public class ConfigurationController {
             txtCompileCommand.clear();
             txtRunCommand.clear();
             cmbComparisonStrategy.setValue(null);
-            currentLoadedDescription = ""; 
 
             lblStatus.setText("Configuration deleted successfully!");
             lblStatus.setTextFill(Color.GREEN);
@@ -178,7 +173,7 @@ public class ConfigurationController {
             if (backup != null) {
                 try { configManager.addConfiguration(backup); } catch(Exception ex) {}
             }
-            lblStatus.setText("Error deleting config: " + e.getMessage());
+            lblStatus.setText("Error deleting: " + e.getMessage());
             lblStatus.setTextFill(Color.RED);
             lblStatus.setVisible(true);
         }
@@ -201,6 +196,7 @@ public class ConfigurationController {
                 lblStatus.setVisible(true);
                 return;
             }
+            name = name.trim();
 
             ComparisonStrategy strategyObj;
             if ("Trim Lines".equals(strategyStr)) {
@@ -211,7 +207,26 @@ public class ConfigurationController {
                 strategyObj = new ExactMatchStrategy(); 
             }
 
-            String finalDesc = currentLoadedDescription;
+            Configuration existing = configManager.getConfiguration(name);
+            
+            Configuration saveBackup = existing; 
+            
+            String finalDesc = "";
+            String finalLang = extension; 
+
+            if (existing != null) {
+                finalLang = existing.getLanguage(); 
+                String existingDesc = existing.getDescription();
+                if (existingDesc != null) {
+                    int idx = existingDesc.indexOf("Compiler Path: ");
+                    if (idx != -1) {
+                        finalDesc = existingDesc.substring(0, idx).trim();
+                    } else {
+                        finalDesc = existingDesc;
+                    }
+                }
+            }
+
             if (compilerPath != null && !compilerPath.trim().isEmpty()) {
                 if (!finalDesc.isEmpty()) finalDesc += "\n";
                 finalDesc += "Compiler Path: " + compilerPath;
@@ -219,7 +234,7 @@ public class ConfigurationController {
 
             Configuration newConfig = new ConfigurationBuilder()
                     .setName(name)
-                    .setLanguage(name)
+                    .setLanguage(finalLang)
                     .setFileExtension(extension)
                     .setCompileCommand(compileCmd)
                     .setRunCommand(runCmd)
@@ -238,7 +253,12 @@ public class ConfigurationController {
                 refreshList();
                 
             } catch (Exception e) {
-                configManager.removeConfiguration(newConfig.getName()); 
+                if (saveBackup != null) {
+                    try { configManager.addConfiguration(saveBackup); } catch (Exception ex) {}
+                } else {
+                    configManager.removeConfiguration(newConfig.getName()); 
+                }
+                
                 lblStatus.setText("Error saving config: " + e.getMessage());
                 lblStatus.setTextFill(Color.RED);
                 lblStatus.setVisible(true);
@@ -249,6 +269,17 @@ public class ConfigurationController {
             lblStatus.setTextFill(Color.RED);
             lblStatus.setVisible(true);
             e.printStackTrace(); 
+        }
+    }
+
+    private void deletePhysicalFile(String configName) throws Exception {
+        String safeName = configName.replaceAll("[^a-zA-Z0-9\\.\\-]", "_");
+        File fileToDelete = new File("config/" + safeName + ".json");
+        
+        if (fileToDelete.exists()) {
+            if (!fileToDelete.delete()) {
+                throw new Exception("File locked or IO error. Could not delete: " + fileToDelete.getName());
+            }
         }
     }
 }
