@@ -31,6 +31,8 @@ public class ConfigurationIO {
 
 
     public void saveConfiguration(Configuration config) throws IOException {
+        rejectIfNameWouldCollideOnDisk(config.getName());
+
         String fileName = sanitizeFileName(config.getName()) + FILE_EXTENSION;
         Path filePath = Paths.get(CONFIG_DIR, fileName);
 
@@ -76,6 +78,31 @@ public class ConfigurationIO {
         try (Writer writer = new FileWriter(filePath)) {
             writer.write(json);
         }
+    }
+
+
+    /**
+     * Deletes the JSON file backing the configuration with the given name.
+     *
+     * <p>Rejects names that would not survive sanitization unchanged, so two
+     * distinct logical names cannot accidentally resolve to the same file.
+     *
+     * @param name the configuration's name
+     * @return {@code true} if the file existed and was deleted, {@code false} if
+     *         no matching file was found on disk
+     * @throws IOException              if an I/O error occurs while deleting the file
+     * @throws IllegalArgumentException if the name contains characters that would
+     *                                  collide with another name after sanitization
+     */
+    public boolean deleteFile(String name) throws IOException {
+        if (name == null || name.isBlank()) {
+            return false;
+        }
+        rejectIfNameWouldCollideOnDisk(name);
+
+        String fileName = sanitizeFileName(name) + FILE_EXTENSION;
+        Path filePath = Paths.get(CONFIG_DIR, fileName);
+        return Files.deleteIfExists(filePath);
     }
 
 
@@ -144,7 +171,30 @@ public class ConfigurationIO {
 
 
     private String sanitizeFileName(String name) {
-        return name.replaceAll("[^a-zA-Z0-9._\\- ]", "_");
+        // Allow common programming-language symbols (+, #, parens, brackets, etc.)
+        // Only block characters that are actually unsafe on disk: path separators,
+        // wildcards used by the filesystem, redirection symbols, quotes, colons.
+        return name.replaceAll("[\\\\/:*?\"<>|\\x00-\\x1F]", "_");
+    }
+
+
+    /**
+     * Rejects names that contain characters which would be lost (replaced with {@code _})
+     * during sanitization. This prevents two distinct logical names (e.g. {@code "My/Cfg"}
+     * and {@code "My_Cfg"}) from resolving to the same JSON file on disk, which would
+     * lead to silent data overwrites or accidental deletions.
+     *
+     * <p>Allowed characters are intentionally permissive to support common language
+     * names like {@code "C++ 17"} or {@code "C#"}. Only filesystem-unsafe characters
+     * (path separators, wildcards, quotes, control characters) are rejected.
+     */
+    private void rejectIfNameWouldCollideOnDisk(String name) {
+        if (name == null) return;
+        if (!sanitizeFileName(name).equals(name)) {
+            throw new IllegalArgumentException(
+                    "Configuration name contains characters that are not allowed on disk: '"
+                            + name + "'. Disallowed: \\ / : * ? \" < > | and control characters.");
+        }
     }
 
 
