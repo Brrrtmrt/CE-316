@@ -39,6 +39,10 @@ public class ProjectController {
 
         btnBrowse.setOnAction(event -> browseDirectory());
         btnCreateProject.setOnAction(event -> createProject());
+
+        btnOpenProject.setOnAction(event -> {
+             System.out.println("Open Project feature will be implemented in Sprint 3!");
+        });
     }
 
     private void loadConfigurationsIntoComboBox() {

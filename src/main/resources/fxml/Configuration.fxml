@@ -16,7 +16,7 @@
         </font>
     </Label>
 
-    <Label text="Create a new configuration or update an existing one." textFill="#666666" />
+    <Label text="Create a new configuration." textFill="#666666" />
 
     <Separator prefWidth="200.0" />
 

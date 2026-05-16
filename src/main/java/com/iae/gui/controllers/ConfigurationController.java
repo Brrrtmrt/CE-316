@@ -67,7 +67,7 @@ public class ConfigurationController {
 
             Configuration newConfig = new ConfigurationBuilder()
                     .setName(name)
-                    .setLanguage(name)
+                    .setLanguage(extension)
                     .setFileExtension(extension)
                     .setCompileCommand(compileCmd)
                     .setRunCommand(runCmd)
@@ -75,12 +75,20 @@ public class ConfigurationController {
                     .setDescription("Compiler Path: " + compilerPath) 
                     .build();
 
-            configManager.addConfiguration(newConfig);
-            configManager.saveAllConfigurations();
+            try {
+                configManager.addConfiguration(newConfig);
+                configManager.saveAllConfigurations();
 
-            lblStatus.setText("Configuration saved successfully!");
-            lblStatus.setTextFill(Color.GREEN);
-            lblStatus.setVisible(true);
+                lblStatus.setText("Configuration saved successfully!");
+                lblStatus.setTextFill(Color.GREEN);
+                lblStatus.setVisible(true);
+            } catch (Exception e) {
+                configManager.removeConfiguration(newConfig.getName()); 
+
+                lblStatus.setText("Error saving config: " + e.getMessage());
+                lblStatus.setTextFill(Color.RED);
+                lblStatus.setVisible(true);
+            }
 
         } catch (Exception e) {
             lblStatus.setText("Error: " + e.getMessage());
