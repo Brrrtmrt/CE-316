@@ -109,15 +109,26 @@ public class ConfigurationManager {
      * to {@code System.err}. Callers that need stronger guarantees should
      * snapshot {@link #getAllConfigurations()} before invoking reload.
      */
+    /**
+     * Loads all configurations from the {@code config/} directory into the
+     * in-memory cache. Called automatically in the constructor; can also be
+     * called explicitly to refresh the cache (e.g. after external file changes).
+     */
     public void loadConfigurations() {
-        configurationCache.clear();
         try {
             List<Configuration> configs = configurationIO.loadAllConfigurations();
+
+            if (configs == null) {
+                System.out.println("No configurations found on disk (loadAllConfigurations returned null).");
+                return;
+            }
+            // -----------------------------------------------------
+
             for (Configuration config : configs) {
                 configurationCache.put(config.getName(), config);
             }
             System.out.println("Loaded " + configs.size() + " configuration(s) from disk.");
-        } catch (IOException e) {
+        } catch (Exception e) {
             System.err.println("Failed to load configurations: " + e.getMessage());
         }
     }
