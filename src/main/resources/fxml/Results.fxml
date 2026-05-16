@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox spacing="10" xmlns="http://javafx.com/javafx/17" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.iae.gui.controllers.ResultsController">
+    <padding>
+        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0"/>
+    </padding>
+
+    <TableView fx:id="resultsTable" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="studentIdCol" text="Student ID" prefWidth="150.0"/>
+            <TableColumn fx:id="statusCol" text="Status" prefWidth="100.0"/>
+            <TableColumn fx:id="matchPercentageCol" text="Match %" prefWidth="100.0"/>
+            <TableColumn fx:id="actionCol" text="Actions" prefWidth="150.0"/>
+        </columns>
+    </TableView>
+    
+    <TextArea fx:id="errorDisplayArea" editable="false" prefRowCount="5" promptText="Select a student to view error details..." VBox.vgrow="NEVER" />
+</VBox>

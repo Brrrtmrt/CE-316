@@ -4,8 +4,11 @@ import com.iae.domain.Configuration;
 import com.iae.domain.StudentSubmission;
 import com.iae.infrastructure.CommandExecutor;
 
+import java.util.logging.Logger;
 
 public class RunStep extends AbstractEvaluationStep {
+
+    private static final Logger logger = Logger.getLogger(RunStep.class.getName());
 
     private final CommandExecutor commandExecutor;
     private final Configuration configuration;
@@ -14,27 +17,41 @@ public class RunStep extends AbstractEvaluationStep {
     public RunStep(CommandExecutor commandExecutor, Configuration configuration, String[] programArguments) {
         this.commandExecutor = commandExecutor;
         this.configuration = configuration;
-        this.programArguments = programArguments;
+        this.programArguments = programArguments != null ? programArguments : new String[0];
     }
 
     @Override
     protected void validate(StudentSubmission submission) throws Exception {
         super.validate(submission);
 
+        if (submission.getExecutableFile() == null) {
+            throw new IllegalStateException("Executable file path not set on submission");
+        }
+
         if (!submission.getExecutableFile().exists()) {
-            throw new IllegalStateException("Executable file does not exist. Compilation may have failed.");
+            throw new IllegalStateException("Executable does not exist — compilation may have failed: "
+                    + submission.getExecutableFile());
         }
     }
 
     @Override
     protected StepResult doExecute(StudentSubmission submission) throws Exception {
+        // Config template uses {out} for the executable path and {args} for program arguments.
+        String args = String.join(" ", programArguments);
         String runCommand = configuration.getRunCommand()
-                .replace("{executable}", submission.getExecutableFile().getAbsolutePath())
-                .replace("{arguments}", String.join(" ", programArguments));
+                .replace("{out}", submission.getExecutableFile().getAbsolutePath())
+                .replace("{args}", args);
+
+        // Trim any trailing whitespace left by an empty {args} substitution.
+        runCommand = runCommand.trim();
+
+        logger.info("Running for student " + submission.getStudentId() + ": " + runCommand);
 
         String output = commandExecutor.executeAndCapture(runCommand, submission.getExtractedDir());
 
         submission.setProgramOutput(output);
+
+        logger.info("Execution complete for student: " + submission.getStudentId());
 
         return StepResult.success(getStepName(),
                 "Program executed successfully for student: " + submission.getStudentId());
