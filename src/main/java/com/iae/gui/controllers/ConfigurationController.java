@@ -1,14 +1,11 @@
 package com.iae.gui.controllers;
 
-import java.io.File;
-
 import com.iae.domain.Configuration;
-import com.iae.domain.ConfigurationBuilder;
 import com.iae.evaluation.strategies.ComparisonStrategy;
 import com.iae.evaluation.strategies.ExactMatchStrategy;
 import com.iae.evaluation.strategies.IgnoreWhitespaceStrategy;
 import com.iae.evaluation.strategies.TrimLinesStrategy;
-import com.iae.service.ConfigurationManager;
+import com.iae.service.ConfigurationService;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -34,13 +31,12 @@ public class ConfigurationController {
     @FXML private Button btnSave;
     @FXML private Label lblStatus;
 
-    private ConfigurationManager configManager;
+    private ConfigurationService configService;
 
     @FXML
     public void initialize() {
-        configManager = ConfigurationManager.getInstance();
+        configService = new ConfigurationService();
         cmbComparisonStrategy.getItems().addAll("Exact Match", "Ignore Whitespace", "Trim Lines");
-
         btnSave.setOnAction(event -> saveConfiguration());
         btnUpdate.setOnAction(event -> updateConfiguration());
         btnDelete.setOnAction(event -> deleteConfiguration());
@@ -56,13 +52,13 @@ public class ConfigurationController {
 
     private void refreshList() {
         listViewConfigs.getItems().clear();
-        for (Configuration c : configManager.getAllConfigurations()) {
+        for (Configuration c : configService.getAllConfigurations()) {
             listViewConfigs.getItems().add(c.getName());
         }
     }
 
     private void loadConfigIntoForm(String configName) {
-        Configuration config = configManager.getConfiguration(configName);
+        Configuration config = configService.getConfiguration(configName);
         if (config != null) {
             txtConfigName.setText(config.getName());
             txtFileExtension.setText(config.getFileExtension());
@@ -101,102 +97,13 @@ public class ConfigurationController {
             return;
         }
 
-        String newName = txtConfigName.getText();
-        if(newName == null || newName.trim().isEmpty()) {
-            lblStatus.setText("Name cannot be empty!");
-            lblStatus.setTextFill(Color.RED);
-            lblStatus.setVisible(true);
-            return; 
-        }
-        newName = newName.trim();
-
-        if (!selected.equals(newName) && configManager.getConfiguration(newName) != null) {
-            lblStatus.setText("A configuration with this new name already exists!");
-            lblStatus.setTextFill(Color.RED);
-            lblStatus.setVisible(true);
-            return;
-        }
-
-        Configuration backup = configManager.getConfiguration(selected);
-        configManager.removeConfiguration(selected);
-        
-        saveConfiguration();
-
-        if (lblStatus.getTextFill().equals(Color.RED)) {
-            if (backup != null) {
-                try { configManager.addConfiguration(backup); } catch(Exception ex) {}
-            }
-        } else {
-            if (!selected.equals(newName)) {
-                try {
-                    deletePhysicalFile(selected);
-                } catch (Exception e) {
-                    System.out.println("Warning: " + e.getMessage());
-                }
-            }
-            if (!newName.isEmpty() && !selected.equals(newName)) {
-                listViewConfigs.getSelectionModel().select(newName);
-            }
-        }
-    }
-
-    private void deleteConfiguration() {
-        String selected = listViewConfigs.getSelectionModel().getSelectedItem();
-        if (selected == null) {
-            lblStatus.setText("Please select a config to delete!");
-            lblStatus.setTextFill(Color.RED);
-            lblStatus.setVisible(true);
-            return;
-        }
-
-        Configuration backup = configManager.getConfiguration(selected);
-
         try {
-            configManager.removeConfiguration(selected);
-            configManager.saveAllConfigurations(); 
-            
-            deletePhysicalFile(selected); 
-            
-            refreshList();
-            
-            txtConfigName.clear();
-            txtFileExtension.clear();
-            txtCompilerPath.clear();
-            txtCompileCommand.clear();
-            txtRunCommand.clear();
-            cmbComparisonStrategy.setValue(null);
-
-            lblStatus.setText("Configuration deleted successfully!");
-            lblStatus.setTextFill(Color.GREEN);
-            lblStatus.setVisible(true);
-        } catch (Exception e) {
-            if (backup != null) {
-                try { configManager.addConfiguration(backup); } catch(Exception ex) {}
-            }
-            lblStatus.setText("Error deleting: " + e.getMessage());
-            lblStatus.setTextFill(Color.RED);
-            lblStatus.setVisible(true);
-        }
-    }
-
-    private void saveConfiguration() {
-        try {
-            String name = txtConfigName.getText();
+            String newName = txtConfigName.getText();
             String extension = txtFileExtension.getText();
             String compilerPath = txtCompilerPath.getText();
             String compileCmd = txtCompileCommand.getText();
             String runCmd = txtRunCommand.getText();
             String strategyStr = cmbComparisonStrategy.getValue();
-
-            if(name == null || name.trim().isEmpty() || 
-                extension == null || extension.trim().isEmpty() || 
-                runCmd == null || runCmd.trim().isEmpty()) {
-                lblStatus.setText("Please fill required fields (Name, Extension, Run Command)!");
-                lblStatus.setTextFill(Color.RED);
-                lblStatus.setVisible(true);
-                return;
-            }
-            name = name.trim();
 
             ComparisonStrategy strategyObj;
             if ("Trim Lines".equals(strategyStr)) {
@@ -207,15 +114,12 @@ public class ConfigurationController {
                 strategyObj = new ExactMatchStrategy(); 
             }
 
-            Configuration existing = configManager.getConfiguration(name);
-            
-            Configuration saveBackup = existing; 
-            
+            Configuration existing = configService.getConfiguration(selected);
+            String finalLang = (extension != null) ? extension : "";
             String finalDesc = "";
-            String finalLang = extension; 
 
             if (existing != null) {
-                finalLang = existing.getLanguage(); 
+                finalLang = existing.getLanguage();
                 String existingDesc = existing.getDescription();
                 if (existingDesc != null) {
                     int idx = existingDesc.indexOf("Compiler Path: ");
@@ -232,54 +136,109 @@ public class ConfigurationController {
                 finalDesc += "Compiler Path: " + compilerPath;
             }
 
-            Configuration newConfig = new ConfigurationBuilder()
-                    .setName(name)
-                    .setLanguage(finalLang)
-                    .setFileExtension(extension)
-                    .setCompileCommand(compileCmd)
-                    .setRunCommand(runCmd)
-                    .setComparisonStrategy(strategyObj)
-                    .setDescription(finalDesc) 
-                    .build();
+            configService.updateConfiguration(
+                    selected, 
+                    newName, 
+                    finalLang, 
+                    extension, 
+                    compileCmd, 
+                    runCmd, 
+                    strategyObj, 
+                    finalDesc
+            );
 
-            try {
-                configManager.addConfiguration(newConfig);
-                configManager.saveAllConfigurations();
-
-                lblStatus.setText("Configuration saved successfully!");
-                lblStatus.setTextFill(Color.GREEN);
-                lblStatus.setVisible(true);
-                
-                refreshList();
-                
-            } catch (Exception e) {
-                if (saveBackup != null) {
-                    try { configManager.addConfiguration(saveBackup); } catch (Exception ex) {}
-                } else {
-                    configManager.removeConfiguration(newConfig.getName()); 
-                }
-                
-                lblStatus.setText("Error saving config: " + e.getMessage());
-                lblStatus.setTextFill(Color.RED);
-                lblStatus.setVisible(true);
+            lblStatus.setText("Configuration updated successfully!");
+            lblStatus.setTextFill(Color.GREEN);
+            lblStatus.setVisible(true);
+            
+            refreshList();
+            if (newName != null && !newName.trim().isEmpty()) {
+                listViewConfigs.getSelectionModel().select(newName.trim());
             }
 
         } catch (Exception e) {
-            lblStatus.setText("Error: " + e.getMessage());
+            lblStatus.setText("Error updating: " + e.getMessage());
             lblStatus.setTextFill(Color.RED);
             lblStatus.setVisible(true);
-            e.printStackTrace(); 
         }
     }
 
-    private void deletePhysicalFile(String configName) throws Exception {
-        String safeName = configName.replaceAll("[^a-zA-Z0-9\\.\\-]", "_");
-        File fileToDelete = new File("config/" + safeName + ".json");
-        
-        if (fileToDelete.exists()) {
-            if (!fileToDelete.delete()) {
-                throw new Exception("File locked or IO error. Could not delete: " + fileToDelete.getName());
+    private void deleteConfiguration() {
+        String selected = listViewConfigs.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            lblStatus.setText("Please select a config to delete!");
+            lblStatus.setTextFill(Color.RED);
+            lblStatus.setVisible(true);
+            return;
+        }
+
+        try {
+            configService.deleteConfiguration(selected);
+            
+            refreshList();
+            
+            txtConfigName.clear();
+            txtFileExtension.clear();
+            txtCompilerPath.clear();
+            txtCompileCommand.clear();
+            txtRunCommand.clear();
+            cmbComparisonStrategy.setValue(null);
+
+            lblStatus.setText("Configuration deleted successfully!");
+            lblStatus.setTextFill(Color.GREEN);
+            lblStatus.setVisible(true);
+        } catch (Exception e) {
+            lblStatus.setText("Error deleting: " + e.getMessage());
+            lblStatus.setTextFill(Color.RED);
+            lblStatus.setVisible(true);
+        }
+    }
+
+    private void saveConfiguration() {
+        try {
+            String name = txtConfigName.getText();
+            String extension = txtFileExtension.getText();
+            String compilerPath = txtCompilerPath.getText();
+            String compileCmd = txtCompileCommand.getText();
+            String runCmd = txtRunCommand.getText();
+            String strategyStr = cmbComparisonStrategy.getValue();
+
+            ComparisonStrategy strategyObj;
+            if ("Trim Lines".equals(strategyStr)) {
+                strategyObj = new TrimLinesStrategy();
+            } else if ("Ignore Whitespace".equals(strategyStr)) {
+                strategyObj = new IgnoreWhitespaceStrategy();
+            } else {
+                strategyObj = new ExactMatchStrategy(); 
             }
+
+            String finalDesc = "";
+            if (compilerPath != null && !compilerPath.trim().isEmpty()) {
+                finalDesc = "Compiler Path: " + compilerPath;
+            }
+            
+            String finalLang = (extension != null) ? extension : "";
+
+            configService.createConfiguration(
+                    name, 
+                    finalLang, 
+                    extension, 
+                    compileCmd, 
+                    runCmd, 
+                    strategyObj, 
+                    finalDesc
+            );
+
+            lblStatus.setText("Configuration saved successfully!");
+            lblStatus.setTextFill(Color.GREEN);
+            lblStatus.setVisible(true);
+            
+            refreshList();
+            
+        } catch (Exception e) {
+            lblStatus.setText("Error saving: " + e.getMessage());
+            lblStatus.setTextFill(Color.RED);
+            lblStatus.setVisible(true);
         }
     }
 }
