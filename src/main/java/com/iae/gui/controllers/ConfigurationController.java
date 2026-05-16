@@ -95,13 +95,34 @@ public class ConfigurationController {
             return;
         }
 
-        try {
-            configManager.removeConfiguration(selected);
-            saveConfiguration(); 
-        } catch (Exception e) {
-            lblStatus.setText("Error updating config: " + e.getMessage());
+        String name = txtConfigName.getText();
+        String extension = txtFileExtension.getText();
+        String runCmd = txtRunCommand.getText();
+
+        if(name == null || name.trim().isEmpty() || 
+           extension == null || extension.trim().isEmpty() || 
+           runCmd == null || runCmd.trim().isEmpty()) {
+            lblStatus.setText("Please fill required fields (Name, Extension, Run Command)!");
             lblStatus.setTextFill(Color.RED);
             lblStatus.setVisible(true);
+            return; 
+        }
+
+        Configuration backup = configManager.getConfiguration(selected);
+
+        configManager.removeConfiguration(selected);
+        
+        saveConfiguration();
+
+        if (lblStatus.getTextFill().equals(Color.RED)) {
+            if (backup != null) {
+                try { configManager.addConfiguration(backup); } catch(Exception ex) {}
+            }
+        } else {
+            String updatedName = txtConfigName.getText().trim();
+            if (!updatedName.isEmpty() && !selected.equals(updatedName)) {
+                listViewConfigs.getSelectionModel().select(updatedName);
+            }
         }
     }
 
@@ -114,9 +135,12 @@ public class ConfigurationController {
             return;
         }
 
+        Configuration backup = configManager.getConfiguration(selected);
+
         try {
             configManager.removeConfiguration(selected);
-            configManager.saveAllConfigurations();
+            configManager.saveAllConfigurations(); 
+            
             refreshList();
             
             txtConfigName.clear();
@@ -130,6 +154,9 @@ public class ConfigurationController {
             lblStatus.setTextFill(Color.GREEN);
             lblStatus.setVisible(true);
         } catch (Exception e) {
+            if (backup != null) {
+                try { configManager.addConfiguration(backup); } catch(Exception ex) {}
+            }
             lblStatus.setText("Error deleting config: " + e.getMessage());
             lblStatus.setTextFill(Color.RED);
             lblStatus.setVisible(true);
