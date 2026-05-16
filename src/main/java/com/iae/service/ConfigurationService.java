@@ -7,7 +7,17 @@ import com.iae.persistence.ConfigurationPersistenceException;
 
 import java.util.List;
 
-
+/**
+ * High-level CRUD service for {@link Configuration} objects.
+ *
+ * <p>This class acts as the single entry-point for all configuration
+ * operations in the application.  It validates input, delegates
+ * persistence to {@link ConfigurationManager}, and wraps errors in
+ * meaningful messages so callers (controllers, tests) do not have to
+ * know about the storage layer.
+ *
+ * <p>Sprint 2 scope: create, read, update, delete, list.
+ */
 public class ConfigurationService {
 
     private final ConfigurationManager manager;
@@ -20,7 +30,22 @@ public class ConfigurationService {
     // Create
     // -------------------------------------------------------------------------
 
-
+    /**
+     * Creates a new configuration and saves it to disk.
+     *
+     * @param name               unique display name (must not be blank or duplicate;
+     *                           only letters, digits, dot, underscore, hyphen, space allowed)
+     * @param language           programming language label (must not be blank)
+     * @param fileExtension      student submission file extension, e.g. ".java".
+     *                           May be empty when no extension is required.
+     * @param compileCommand     shell command used to compile, or {@code ""} for interpreted languages
+     * @param runCommand         shell command used to run (must not be blank)
+     * @param comparisonStrategy output comparison strategy (must not be null)
+     * @param description        optional human-readable note
+     * @return the created {@link Configuration}
+     * @throws IllegalArgumentException          if validation fails or the name already exists
+     * @throws ConfigurationPersistenceException if persistence fails
+     */
     public Configuration createConfiguration(
             String name,
             String language,
@@ -58,17 +83,14 @@ public class ConfigurationService {
     // Read
     // -------------------------------------------------------------------------
 
-
     public Configuration getConfiguration(String name) {
         if (name == null || name.isBlank()) return null;
         return manager.getConfiguration(name.trim());
     }
 
-
     public List<Configuration> getAllConfigurations() {
         return manager.getAllConfigurations();
     }
-
 
     public boolean exists(String name) {
         return name != null && manager.configurationExists(name.trim());
@@ -78,7 +100,19 @@ public class ConfigurationService {
     // Update
     // -------------------------------------------------------------------------
 
-
+    /**
+     * Replaces the configuration identified by {@code oldName} with a new one
+     * built from the supplied values, then persists the change.
+     *
+     * <p>If the name is changing, the old JSON file on disk is deleted to
+     * prevent an orphan file from being re-loaded on the next startup.
+     *
+     * @param oldName            the name of the configuration to replace
+     * @param newName            the new name (may equal oldName for in-place update)
+     * @param comparisonStrategy must not be null
+     * @throws IllegalArgumentException          if validation fails or {@code oldName} does not exist
+     * @throws ConfigurationPersistenceException if persistence fails
+     */
     public Configuration updateConfiguration(
             String oldName,
             String newName,
@@ -123,7 +157,6 @@ public class ConfigurationService {
     // Delete
     // -------------------------------------------------------------------------
 
-
     public void deleteConfiguration(String name) throws ConfigurationPersistenceException {
         validateNotBlank(name, "Name");
         if (!manager.configurationExists(name.trim())) {
@@ -137,11 +170,9 @@ public class ConfigurationService {
     // Bulk persistence helpers
     // -------------------------------------------------------------------------
 
-
     public void reloadFromDisk() {
         manager.loadConfigurations();
     }
-
 
     public void saveAll() throws ConfigurationPersistenceException {
         manager.saveAllConfigurations();
