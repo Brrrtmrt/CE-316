@@ -67,7 +67,7 @@ public class ConfigurationController {
 
             Configuration newConfig = new ConfigurationBuilder()
                     .setName(name)
-                    .setLanguage(extension)
+                    .setLanguage(name)
                     .setFileExtension(extension)
                     .setCompileCommand(compileCmd)
                     .setRunCommand(runCmd)
