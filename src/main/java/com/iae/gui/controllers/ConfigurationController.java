@@ -12,6 +12,7 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
 import javafx.scene.control.TextField;
 import javafx.scene.paint.Color;
 
@@ -24,6 +25,10 @@ public class ConfigurationController {
     @FXML private TextField txtRunCommand;
     @FXML private ComboBox<String> cmbComparisonStrategy;
     
+    @FXML private ListView<String> listViewConfigs;
+    @FXML private Button btnUpdate;
+    @FXML private Button btnDelete;
+    
     @FXML private Button btnSave;
     @FXML private Label lblStatus;
 
@@ -32,10 +37,103 @@ public class ConfigurationController {
     @FXML
     public void initialize() {
         configManager = ConfigurationManager.getInstance();
-
         cmbComparisonStrategy.getItems().addAll("Exact Match", "Ignore Whitespace", "Trim Lines");
 
         btnSave.setOnAction(event -> saveConfiguration());
+        
+        btnUpdate.setOnAction(event -> updateConfiguration());
+        btnDelete.setOnAction(event -> deleteConfiguration());
+
+        refreshList();
+
+        listViewConfigs.getSelectionModel().selectedItemProperty().addListener((obs, oldVal, newVal) -> {
+            if (newVal != null) {
+                loadConfigIntoForm(newVal);
+            }
+        });
+    }
+
+    private void refreshList() {
+        listViewConfigs.getItems().clear();
+        for (Configuration c : configManager.getAllConfigurations()) {
+            listViewConfigs.getItems().add(c.getName());
+        }
+    }
+
+    private void loadConfigIntoForm(String configName) {
+        Configuration config = configManager.getConfiguration(configName);
+        if (config != null) {
+            txtConfigName.setText(config.getName());
+            txtFileExtension.setText(config.getFileExtension());
+            
+            String desc = config.getDescription();
+            if (desc != null && desc.startsWith("Compiler Path: ")) {
+                txtCompilerPath.setText(desc.replace("Compiler Path: ", ""));
+            } else {
+                txtCompilerPath.setText("");
+            }
+            
+            txtCompileCommand.setText(config.getCompileCommand() != null ? config.getCompileCommand() : "");
+            txtRunCommand.setText(config.getRunCommand() != null ? config.getRunCommand() : "");
+            
+            if (config.getComparisonStrategy() instanceof TrimLinesStrategy) {
+                cmbComparisonStrategy.setValue("Trim Lines");
+            } else if (config.getComparisonStrategy() instanceof IgnoreWhitespaceStrategy) {
+                cmbComparisonStrategy.setValue("Ignore Whitespace");
+            } else {
+                cmbComparisonStrategy.setValue("Exact Match");
+            }
+        }
+    }
+
+    private void updateConfiguration() {
+        String selected = listViewConfigs.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            lblStatus.setText("Please select a config from the list to update!");
+            lblStatus.setTextFill(Color.RED);
+            lblStatus.setVisible(true);
+            return;
+        }
+
+        try {
+            configManager.removeConfiguration(selected);
+            saveConfiguration(); 
+        } catch (Exception e) {
+            lblStatus.setText("Error updating config: " + e.getMessage());
+            lblStatus.setTextFill(Color.RED);
+            lblStatus.setVisible(true);
+        }
+    }
+
+    private void deleteConfiguration() {
+        String selected = listViewConfigs.getSelectionModel().getSelectedItem();
+        if (selected == null) {
+            lblStatus.setText("Please select a config from the list to delete!");
+            lblStatus.setTextFill(Color.RED);
+            lblStatus.setVisible(true);
+            return;
+        }
+
+        try {
+            configManager.removeConfiguration(selected);
+            configManager.saveAllConfigurations();
+            refreshList();
+            
+            txtConfigName.clear();
+            txtFileExtension.clear();
+            txtCompilerPath.clear();
+            txtCompileCommand.clear();
+            txtRunCommand.clear();
+            cmbComparisonStrategy.setValue(null);
+
+            lblStatus.setText("Configuration deleted successfully!");
+            lblStatus.setTextFill(Color.GREEN);
+            lblStatus.setVisible(true);
+        } catch (Exception e) {
+            lblStatus.setText("Error deleting config: " + e.getMessage());
+            lblStatus.setTextFill(Color.RED);
+            lblStatus.setVisible(true);
+        }
     }
 
     private void saveConfiguration() {
@@ -82,9 +180,11 @@ public class ConfigurationController {
                 lblStatus.setText("Configuration saved successfully!");
                 lblStatus.setTextFill(Color.GREEN);
                 lblStatus.setVisible(true);
+                
+                refreshList();
+                
             } catch (Exception e) {
                 configManager.removeConfiguration(newConfig.getName()); 
-
                 lblStatus.setText("Error saving config: " + e.getMessage());
                 lblStatus.setTextFill(Color.RED);
                 lblStatus.setVisible(true);
