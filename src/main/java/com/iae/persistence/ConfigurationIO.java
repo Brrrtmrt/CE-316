@@ -79,6 +79,17 @@ public class ConfigurationIO {
     }
 
 
+
+    public boolean deleteFile(String name) throws IOException {
+        if (name == null || name.isBlank()) {
+            return false;
+        }
+        String fileName = sanitizeFileName(name) + FILE_EXTENSION;
+        Path filePath = Paths.get(CONFIG_DIR, fileName);
+        return Files.deleteIfExists(filePath);
+    }
+
+
     private Configuration parseFromFile(String filePath) throws IOException {
         String content = new String(Files.readAllBytes(Paths.get(filePath)));
         JsonObject json = JsonParser.parseString(content).getAsJsonObject();
