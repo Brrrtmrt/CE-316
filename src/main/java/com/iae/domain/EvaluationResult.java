@@ -8,6 +8,7 @@ public class EvaluationResult {
     private boolean runSuccess;
     private boolean outputMatch;
     private String errorLog;
+    private String programOutput;
 
     public EvaluationResult(String studentId) {
         this.studentId = studentId;
@@ -31,11 +32,19 @@ public class EvaluationResult {
         return unzipSuccess;
     }
 
+    public boolean getUnzipSuccess() {
+        return unzipSuccess;
+    }
+
     public void setCompileSuccess(boolean compileSuccess) {
         this.compileSuccess = compileSuccess;
     }
 
     public boolean isCompileSuccess() {
+        return compileSuccess;
+    }
+
+    public boolean getCompileSuccess() {
         return compileSuccess;
     }
 
@@ -47,11 +56,19 @@ public class EvaluationResult {
         return runSuccess;
     }
 
+    public boolean getRunSuccess() {
+        return runSuccess;
+    }
+
     public void setOutputMatch(boolean outputMatch) {
         this.outputMatch = outputMatch;
     }
 
     public boolean isOutputMatch() {
+        return outputMatch;
+    }
+
+    public boolean getOutputMatch() {
         return outputMatch;
     }
 
@@ -61,6 +78,14 @@ public class EvaluationResult {
 
     public String getErrorLog() {
         return errorLog;
+    }
+
+    public void setProgramOutput(String programOutput) {
+        this.programOutput = programOutput;
+    }
+
+    public String getProgramOutput() {
+        return programOutput;
     }
 
     /**

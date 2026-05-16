@@ -148,8 +148,7 @@ public class EvaluationFacade {
         String studentId = extractStudentId(zipFile);
         StudentSubmission submission = new StudentSubmission(studentId, zipFile);
 
-        EvaluationResult result = new EvaluationResult(studentId);
-
+        EvaluationResult result = submission.getEvaluationResult(); // Link directly to the submission's built-in result
 
         UnzipStep unzipStep = new UnzipStep(config);
         StepResult unzipResult = unzipStep.execute(submission);
@@ -173,6 +172,9 @@ public class EvaluationFacade {
         StepResult runResult = runStep.execute(submission);
         result.setRunSuccess(runResult.isSuccess());
 
+        // Capture the output generated during the run step
+        result.setProgramOutput(submission.getProgramOutput());
+
         if (!runResult.isSuccess()) {
             result.setErrorLog(runResult.getErrorDetails());
             return result;
@@ -185,6 +187,8 @@ public class EvaluationFacade {
         if (!compareResult.isSuccess()) {
             result.setErrorLog("Output mismatch");
         }
+
+        submission.setSubmissionStatus(result.getStatus()); // Synchronize the overall status
 
         return result;
     }
