@@ -1,39 +1,33 @@
+
+
 CREATE TABLE IF NOT EXISTS projects (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    language TEXT NOT NULL,
-    description TEXT,
+    id                     INTEGER PRIMARY KEY AUTOINCREMENT,
+    name                   TEXT    NOT NULL,
 
-    -- configuration fields embedded
-    config_name TEXT,
-    source_dir TEXT,
-    output_dir TEXT,
-    test_dir TEXT,
-    comparison_strategy TEXT,
-    extra_param TEXT
-);
 
-CREATE TABLE IF NOT EXISTS configurations (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    project_id INTEGER NOT NULL,
-    name TEXT,
-    source_dir TEXT,
-    output_dir TEXT,
-    test_dir TEXT,
-    comparison_strategy TEXT,
-    extra_param TEXT,
-    FOREIGN KEY (project_id) REFERENCES projects(id)
+    config_name            TEXT    NOT NULL,
+    language               TEXT    NOT NULL,
+    file_extension         TEXT    NOT NULL,
+    compile_command        TEXT,
+    run_command            TEXT    NOT NULL,
+    comparison_strategy    TEXT    NOT NULL DEFAULT 'exact',
+    description            TEXT,
+
+
+    submissions_directory  TEXT    NOT NULL,
+    program_arguments      TEXT,
+    expected_output        TEXT
 );
 
 CREATE TABLE IF NOT EXISTS evaluation_results (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    project_id INTEGER NOT NULL,
-    student_id TEXT NOT NULL,
-    unzip_success INTEGER,
-    compile_success INTEGER,
-    run_success INTEGER,
-    output_match INTEGER,
-    error_log TEXT,
-    status TEXT,
-    FOREIGN KEY (project_id) REFERENCES projects(id)
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    project_id       INTEGER NOT NULL,
+    student_id       TEXT    NOT NULL,
+    unzip_success    INTEGER NOT NULL DEFAULT 0,   -
+    compile_success  INTEGER NOT NULL DEFAULT 0,
+    run_success      INTEGER NOT NULL DEFAULT 0,
+    output_match     INTEGER NOT NULL DEFAULT 0,
+    error_log        TEXT,
+    status           TEXT    NOT NULL,
+    FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 );
