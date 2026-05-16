@@ -6,6 +6,7 @@ import java.util.List;
 import com.iae.domain.Configuration;
 import com.iae.domain.Project;
 import com.iae.service.ConfigurationManager;
+import com.iae.service.ProjectService;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
@@ -31,10 +32,12 @@ public class ProjectController {
     @FXML private Label lblStatus;
 
     private ConfigurationManager configManager;
+    private ProjectService projectService;
 
     @FXML
     public void initialize() {
         configManager = ConfigurationManager.getInstance();
+        projectService = ProjectService.getInstance();
         loadConfigurationsIntoComboBox();
 
         btnBrowse.setOnAction(event -> browseDirectory());
@@ -104,6 +107,7 @@ public class ProjectController {
 
             Project newProject = new Project(selectedConfig, dirPath, argsArray, expectedOutput);
             newProject.setName(txtProjectName.getText());
+            projectService.addProject(newProject);
 
             lblStatus.setText("Project created successfully!");
             lblStatus.setTextFill(Color.GREEN);
