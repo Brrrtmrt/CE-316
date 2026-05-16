@@ -171,7 +171,10 @@ public class ConfigurationIO {
 
 
     private String sanitizeFileName(String name) {
-        return name.replaceAll("[^a-zA-Z0-9._\\- ]", "_");
+        // Allow common programming-language symbols (+, #, parens, brackets, etc.)
+        // Only block characters that are actually unsafe on disk: path separators,
+        // wildcards used by the filesystem, redirection symbols, quotes, colons.
+        return name.replaceAll("[\\\\/:*?\"<>|\\x00-\\x1F]", "_");
     }
 
 
@@ -180,13 +183,17 @@ public class ConfigurationIO {
      * during sanitization. This prevents two distinct logical names (e.g. {@code "My/Cfg"}
      * and {@code "My_Cfg"}) from resolving to the same JSON file on disk, which would
      * lead to silent data overwrites or accidental deletions.
+     *
+     * <p>Allowed characters are intentionally permissive to support common language
+     * names like {@code "C++ 17"} or {@code "C#"}. Only filesystem-unsafe characters
+     * (path separators, wildcards, quotes, control characters) are rejected.
      */
     private void rejectIfNameWouldCollideOnDisk(String name) {
         if (name == null) return;
         if (!sanitizeFileName(name).equals(name)) {
             throw new IllegalArgumentException(
                     "Configuration name contains characters that are not allowed on disk: '"
-                            + name + "'. Allowed: letters, digits, dot, underscore, hyphen, space.");
+                            + name + "'. Disallowed: \\ / : * ? \" < > | and control characters.");
         }
     }
 
