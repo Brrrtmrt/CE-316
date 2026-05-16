@@ -1,6 +1,6 @@
 package com.iae.gui.controllers;
 
-import com.iae.domain.EvaluationResult;
+import com.iae.domain.StudentSubmission;
 import com.iae.domain.Status;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -15,47 +15,43 @@ import java.util.List;
 public class ResultsController {
 
     @FXML
-    private TableView<EvaluationResult> resultsTable;
+    private TableView<StudentSubmission> resultsTable;
 
     @FXML
-    private TableColumn<EvaluationResult, String> studentIdCol;
+    private TableColumn<StudentSubmission, String> studentIdCol;
 
     @FXML
-    private TableColumn<EvaluationResult, String> statusCol;
+    private TableColumn<StudentSubmission, String> statusCol;
 
     @FXML
-    private TableColumn<EvaluationResult, String> matchPercentageCol;
+    private TableColumn<StudentSubmission, String> matchPercentageCol;
 
     @FXML
-    private TableColumn<EvaluationResult, Void> actionCol;
+    private TableColumn<StudentSubmission, Void> actionCol;
 
     @FXML
     private TextArea errorDisplayArea; // Area at bottom/side for detailed errors
 
-    private final ObservableList<EvaluationResult> resultsList = FXCollections.observableArrayList();
+    private final ObservableList<StudentSubmission> resultsList = FXCollections.observableArrayList();
 
     @FXML
     public void initialize() {
         // 1. Setup Table Columns
-        // Note: Replace the getter methods inside the lambda with the exact method names in your EvaluationResult class
         
         studentIdCol.setCellValueFactory(cellData -> {
-            // Assuming EvaluationResult has a reference to StudentSubmission
-            String id = cellData.getValue().getStudentSubmission() != null 
-                        ? cellData.getValue().getStudentSubmission().getStudentId() 
-                        : "Unknown";
-            return new SimpleStringProperty(id);
+            String id = cellData.getValue().getStudentId();
+            return new SimpleStringProperty(id != null ? id : "Unknown");
         });
 
         statusCol.setCellValueFactory(cellData -> {
-            Status status = cellData.getValue().getStatus();
+            Status status = cellData.getValue().getSubmissionStatus();
             return new SimpleStringProperty(status != null ? status.name() : "N/A");
         });
 
         matchPercentageCol.setCellValueFactory(cellData -> {
-            // Assuming there is a getScore() or getMatchPercentage() method returning a double
-            double score = cellData.getValue().getScore(); // Or similar
-            return new SimpleStringProperty(String.format("%.1f%%", score));
+            Status status = cellData.getValue().getSubmissionStatus();
+            String match = (status == Status.PASS) ? "100.0%" : "0.0%";
+            return new SimpleStringProperty(match);
         });
 
         // 2. Add the dynamic "Details" Button to the Action Column
@@ -72,12 +68,12 @@ public class ResultsController {
     }
 
     private void setupDetailsButtonColumn() {
-        Callback<TableColumn<EvaluationResult, Void>, TableCell<EvaluationResult, Void>> cellFactory = param -> new TableCell<>() {
+        Callback<TableColumn<StudentSubmission, Void>, TableCell<StudentSubmission, Void>> cellFactory = param -> new TableCell<>() {
             private final Button btn = new Button("Details");
 
             {
                 btn.setOnAction(event -> {
-                    EvaluationResult result = getTableView().getItems().get(getIndex());
+                    StudentSubmission result = getTableView().getItems().get(getIndex());
                     showDetailsDialog(result);
                 });
             }
@@ -98,7 +94,7 @@ public class ResultsController {
     /**
      * Call this method from the EvaluationFacade or MainController when evaluation finishes.
      */
-    public void loadResults(List<EvaluationResult> results) {
+    public void loadResults(List<StudentSubmission> results) {
         resultsList.clear();
         if (results != null) {
             resultsList.addAll(results);
@@ -109,17 +105,19 @@ public class ResultsController {
     /**
      * Updates the lower text area to quickly show compilation or run errors for the selected row.
      */
-    private void updateErrorDisplay(EvaluationResult result) {
-        Status status = result.getStatus();
+    private void updateErrorDisplay(StudentSubmission result) {
+        Status status = result.getSubmissionStatus();
         
-        // Assuming EvaluationResult has a getErrorMessage() or getConsoleOutput()
-        String logs = result.getErrorMessage() != null ? result.getErrorMessage() : "No error output.";
+        String logs = result.getProgramOutput() != null ? result.getProgramOutput() : "No output/logs available.";
 
-        if (status != null && (status == Status.COMPILE_ERROR || status == Status.RUNTIME_ERROR)) {
+        if (status != null && status == Status.ERROR) {
             errorDisplayArea.setText("FAILURE LOGS:\n" + logs);
             errorDisplayArea.setStyle("-fx-text-fill: red; -fx-font-family: monospace;");
+        } else if (status != null && status == Status.FAIL) {
+            errorDisplayArea.setText("OUTPUT MISMATCH:\n" + logs);
+            errorDisplayArea.setStyle("-fx-text-fill: orange; -fx-font-family: monospace;");
         } else {
-            errorDisplayArea.setText("SUCCESS:\nExecution completed successfully.");
+            errorDisplayArea.setText("SUCCESS:\nExecution completed successfully.\n\n" + logs);
             errorDisplayArea.setStyle("-fx-text-fill: green; -fx-font-family: monospace;");
         }
     }
@@ -127,18 +125,16 @@ public class ResultsController {
     /**
      * Opens a popup alert showing the full detailed view of that specific student's run.
      */
-    private void showDetailsDialog(EvaluationResult result) {
+    private void showDetailsDialog(StudentSubmission result) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle("Detailed Evaluation Results");
         
-        String studentId = result.getStudentSubmission() != null 
-                ? result.getStudentSubmission().getStudentId() : "Unknown";
+        String studentId = result.getStudentId() != null ? result.getStudentId() : "Unknown";
         alert.setHeaderText("Execution Details for Student: " + studentId);
         
-        String content = "Status: " + (result.getStatus() != null ? result.getStatus().name() : "N/A") + "\n"
-                       + "Match: " + String.format("%.2f%%", result.getScore()) + "\n\n"
+        String content = "Status: " + (result.getSubmissionStatus() != null ? result.getSubmissionStatus().name() : "N/A") + "\n\n"
                        + "System Output/Error Logs:\n"
-                       + (result.getErrorMessage() != null ? result.getErrorMessage() : "None");
+                       + (result.getProgramOutput() != null ? result.getProgramOutput() : "None");
                        
         TextArea area = new TextArea(content);
         area.setWrapText(true);
