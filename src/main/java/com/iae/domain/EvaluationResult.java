@@ -1,29 +1,84 @@
 package com.iae.domain;
 
 public class EvaluationResult {
-    private String studentId;
+
+    private final String studentId;
+    private boolean unzipSuccess;
+    private boolean compileSuccess;
+    private boolean runSuccess;
+    private boolean outputMatch;
+    private String errorLog;
 
     public EvaluationResult(String studentId) {
         this.studentId = studentId;
     }
 
-    public static EvaluationResult error(String studentId, String s) {
-        return null;
+    public static EvaluationResult error(String studentId, String message) {
+        EvaluationResult result = new EvaluationResult(studentId);
+        result.setErrorLog(message);
+        return result;
     }
 
-    public void setUnzipSuccess(boolean success) {
+    public String getStudentId() {
+        return studentId;
     }
 
-    public void setErrorLog(String errorDetails) {
+    public void setUnzipSuccess(boolean unzipSuccess) {
+        this.unzipSuccess = unzipSuccess;
     }
 
-    public void setCompileSuccess(boolean success) {
-
+    public boolean isUnzipSuccess() {
+        return unzipSuccess;
     }
 
-    public void setRunSuccess(boolean success) {
+    public void setCompileSuccess(boolean compileSuccess) {
+        this.compileSuccess = compileSuccess;
     }
 
-    public void setOutputMatch(boolean success) {
+    public boolean isCompileSuccess() {
+        return compileSuccess;
+    }
+
+    public void setRunSuccess(boolean runSuccess) {
+        this.runSuccess = runSuccess;
+    }
+
+    public boolean isRunSuccess() {
+        return runSuccess;
+    }
+
+    public void setOutputMatch(boolean outputMatch) {
+        this.outputMatch = outputMatch;
+    }
+
+    public boolean isOutputMatch() {
+        return outputMatch;
+    }
+
+    public void setErrorLog(String errorLog) {
+        this.errorLog = errorLog;
+    }
+
+    public String getErrorLog() {
+        return errorLog;
+    }
+
+    /**
+     * Derives the overall status from the step outcomes.
+     * ERROR  — any step before comparison failed (unzip / compile / run).
+     * PASS   — all steps succeeded and output matches.
+     * FAIL   — execution succeeded but output does not match.
+     */
+    public Status getStatus() {
+        if (!unzipSuccess || !compileSuccess || !runSuccess) {
+            return Status.ERROR;
+        }
+        return outputMatch ? Status.PASS : Status.FAIL;
+    }
+
+    @Override
+    public String toString() {
+        return "EvaluationResult{studentId='" + studentId + "', status=" + getStatus()
+                + ", error='" + errorLog + "'}";
     }
 }
