@@ -1,20 +1,20 @@
 module com.iae {
-    // JavaFX dependencies
     requires javafx.controls;
     requires javafx.fxml;
-    requires javafx.graphics;
-    
-    // External dependencies
+    requires java.sql;
     requires com.google.gson;
+    requires javafx.graphics;
 
-    // Open controllers so FXMLLoader can inject @FXML fields
+    opens com.iae.gui to javafx.fxml;
     opens com.iae.gui.controllers to javafx.fxml;
-    
-    // Open domain to javafx.base so TableView PropertyValueFactory can read the fields
-    opens com.iae.domain to javafx.base;
 
-    // Export primary packages
+    opens com.iae.domain to javafx.base;
+    
     exports com.iae.gui;
+    exports com.iae.gui.controllers;
     exports com.iae.domain;
     exports com.iae.service;
+    exports com.iae.evaluation;
+    exports com.iae.evaluation.steps;
+    exports com.iae.evaluation.strategies;
 }
