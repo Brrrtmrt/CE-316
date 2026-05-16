@@ -47,8 +47,10 @@ public class ConfigurationController {
             String runCmd = txtRunCommand.getText();
             String strategyStr = cmbComparisonStrategy.getValue();
 
-            if(name == null || name.trim().isEmpty() || extension == null || extension.trim().isEmpty()) {
-                lblStatus.setText("Please fill required fields!");
+            if(name == null || name.trim().isEmpty() || 
+                extension == null || extension.trim().isEmpty() || 
+                runCmd == null || runCmd.trim().isEmpty()) {
+                lblStatus.setText("Please fill required fields (Name, Extension, Run Command)!");
                 lblStatus.setTextFill(Color.RED);
                 lblStatus.setVisible(true);
                 return;

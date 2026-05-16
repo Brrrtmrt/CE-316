@@ -19,9 +19,9 @@ public class MainController {
     @FXML
     public void initialize() {
         
-        btnCreateAssessment.setOnAction(e -> loadScreen("/fxml/project.fxml"));
+        btnCreateAssessment.setOnAction(e -> loadScreen("/fxml/Project.fxml"));
         
-        btnConfigSettings.setOnAction(e -> loadScreen("/fxml/configuration.fxml"));
+        btnConfigSettings.setOnAction(e -> loadScreen("/fxml/Configuration.fxml"));
         
         btnProjectResults.setOnAction(e -> loadScreen("/fxml/Results.fxml"));
     }

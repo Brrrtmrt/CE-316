@@ -79,6 +79,14 @@ public class ProjectController {
                 return;
             }
 
+            java.io.File directory = new java.io.File(dirPath);
+            if (!directory.exists() || !directory.isDirectory()) {
+                lblStatus.setText("Error: Selected path is not a valid directory!");
+                lblStatus.setTextFill(Color.RED);
+                lblStatus.setVisible(true);
+                return;
+            }
+
             String[] argsArray = new String[0];
             if (argumentsStr != null && !argumentsStr.trim().isEmpty()) {
                 argsArray = argumentsStr.trim().split("\\s+");
@@ -91,8 +99,8 @@ public class ProjectController {
             Configuration selectedConfig = configManager.getConfiguration(selectedConfigName);
 
             Project newProject = new Project(selectedConfig, dirPath, argsArray, expectedOutput);
+            newProject.setName(txtProjectName.getText());
 
-            
             lblStatus.setText("Project created successfully!");
             lblStatus.setTextFill(Color.GREEN);
             lblStatus.setVisible(true);
