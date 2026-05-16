@@ -4,6 +4,7 @@ import com.iae.domain.Configuration;
 import com.iae.persistence.ConfigurationIO;
 import com.iae.persistence.ConfigurationPersistenceException;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -27,6 +28,12 @@ import java.util.Map;
  * follow a "disk-first, cache-on-success" pattern. If the disk write fails, the
  * in-memory cache is left untouched so the manager never reports a configuration
  * that does not actually exist on disk.
+ *
+ * <p><strong>Exception policy:</strong> only genuine I/O failures are wrapped in
+ * {@link ConfigurationPersistenceException}. Validation errors such as
+ * {@link IllegalArgumentException} (e.g. names containing illegal characters)
+ * are propagated unchanged so callers can distinguish programmer-error from
+ * environmental failure.
  */
 public class ConfigurationManager {
 
@@ -110,7 +117,7 @@ public class ConfigurationManager {
                 configurationCache.put(config.getName(), config);
             }
             System.out.println("Loaded " + configs.size() + " configuration(s) from disk.");
-        } catch (Exception e) {
+        } catch (IOException e) {
             System.err.println("Failed to load configurations: " + e.getMessage());
         }
     }
@@ -124,16 +131,17 @@ public class ConfigurationManager {
      * If the disk write fails, the cache is left untouched.
      *
      * @param configuration the configuration to save
-     * @throws ConfigurationPersistenceException if the file cannot be written
+     * @throws ConfigurationPersistenceException if an I/O error occurs while writing
+     * @throws IllegalArgumentException          if the configuration's name is invalid
+     *                                           (propagated from the IO layer)
      */
     public void saveConfiguration(Configuration configuration) throws ConfigurationPersistenceException {
         try {
             configurationIO.saveConfiguration(configuration);
-        } catch (Exception e) {
+        } catch (IOException e) {
             throw new ConfigurationPersistenceException(
                     "Failed to save configuration '" + configuration.getName() + "'.", e);
         }
-        // Disk write succeeded — now safe to mutate the cache.
         configurationCache.put(configuration.getName(), configuration);
     }
 
@@ -144,31 +152,25 @@ public class ConfigurationManager {
      * <p>If {@code oldName} equals the new configuration's name (i.e. no rename),
      * this method behaves identically to {@link #saveConfiguration(Configuration)}.
      *
-     * <p>If the disk operations fail, both the cache and the previous
-     * configuration mapping for {@code oldName} are preserved.
-     *
      * @param oldName          the previous name of the configuration
      * @param newConfiguration the configuration with the new name and possibly other changes
-     * @throws ConfigurationPersistenceException if the new file cannot be written
-     *                                           or the old file cannot be deleted
+     * @throws ConfigurationPersistenceException if an I/O error occurs
+     * @throws IllegalArgumentException          if a name is invalid (propagated from the IO layer)
      */
     public void renameAndSaveConfiguration(String oldName, Configuration newConfiguration)
             throws ConfigurationPersistenceException {
 
         try {
-            // 1) Write the new file
             configurationIO.saveConfiguration(newConfiguration);
-            // 2) Delete the old file IFF the name actually changed
             if (oldName != null && !oldName.equals(newConfiguration.getName())) {
                 configurationIO.deleteFile(oldName);
             }
-        } catch (Exception e) {
+        } catch (IOException e) {
             throw new ConfigurationPersistenceException(
                     "Failed to rename configuration from '" + oldName + "' to '"
                             + newConfiguration.getName() + "'.", e);
         }
 
-        // Disk operations succeeded — now safe to mutate the cache.
         configurationCache.remove(oldName);
         configurationCache.put(newConfiguration.getName(), newConfiguration);
     }
@@ -189,7 +191,7 @@ public class ConfigurationManager {
         for (Configuration config : configurationCache.values()) {
             try {
                 configurationIO.saveConfiguration(config);
-            } catch (Exception e) {
+            } catch (IOException e) {
                 System.err.println("Failed to save configuration '" + config.getName() + "': " + e.getMessage());
                 failures.add(config.getName());
                 lastCause = e;
@@ -207,27 +209,21 @@ public class ConfigurationManager {
     // -------------------------------------------------------------------------
 
     /**
-     * Hard-delete: deletes the JSON file from disk and, on success, removes the
-     * entry from the cache. If the disk delete fails, the cache is left untouched
-     * so the manager keeps reflecting the actual on-disk state.
+     * Hard-delete: removes the JSON file from disk and the corresponding entry
+     * from the cache. If the disk delete fails, the cache is left untouched.
      *
      * @param name the configuration name to delete
-     * @return {@code true} if a file was deleted on disk, {@code false} if no
-     *         backing file existed (cache is still cleared in that case because
-     *         the desired end-state — "name not present" — is already true)
      * @throws ConfigurationPersistenceException if an I/O error occurs while deleting the file
+     * @throws IllegalArgumentException          if the name is invalid (propagated from IO layer)
      */
-    public boolean deleteConfigurationFromDisk(String name) throws ConfigurationPersistenceException {
-        boolean fileExisted;
+    public void deleteConfigurationFromDisk(String name) throws ConfigurationPersistenceException {
         try {
-            fileExisted = configurationIO.deleteFile(name);
-        } catch (Exception e) {
+            configurationIO.deleteFile(name);
+        } catch (IOException e) {
             throw new ConfigurationPersistenceException(
                     "Failed to delete configuration file for '" + name + "'.", e);
         }
-        // Disk delete succeeded — now safe to remove from cache.
         configurationCache.remove(name);
-        return fileExisted;
     }
 
     // -------------------------------------------------------------------------
@@ -241,7 +237,7 @@ public class ConfigurationManager {
         }
         try {
             configurationIO.exportToFile(config, filePath);
-        } catch (Exception e) {
+        } catch (IOException e) {
             throw new ConfigurationPersistenceException(
                     "Failed to export configuration '" + name + "' to '" + filePath + "'.", e);
         }
@@ -251,7 +247,7 @@ public class ConfigurationManager {
         Configuration config;
         try {
             config = configurationIO.importFromFile(filePath);
-        } catch (Exception e) {
+        } catch (IOException e) {
             throw new ConfigurationPersistenceException(
                     "Failed to import configuration from '" + filePath + "'.", e);
         }

@@ -16,10 +16,11 @@ import static org.junit.jupiter.api.Assertions.*;
 /**
  * Unit / integration tests for {@link ConfigurationService}.
  *
- * <p>Her testten önce {@link ConfigurationManager#clearCache()} ile singleton
- * temizleniyor; testler birbirini etkilemez.
+ * <p>The singleton cache is cleared before each test via
+ * {@link ConfigurationManager#clearCache()}, so tests do not influence each other.
  *
- * <p>Her testten sonra {@code config/Test_*.json} dosyaları da temizleniyor.
+ * <p>Any {@code config/Test_*.json} files created during a test are removed
+ * afterwards to keep the working directory clean.
  */
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ConfigurationServiceTest {
@@ -50,7 +51,7 @@ class ConfigurationServiceTest {
 
     @Test
     @Order(1)
-    @DisplayName("createConfiguration — başarılı oluşturma ve cache'e ekleme")
+    @DisplayName("createConfiguration — creates and caches successfully")
     void testCreate_success() throws Exception {
         Configuration config = service.createConfiguration(
                 "Test_Java17", "Java", ".java",
@@ -66,7 +67,7 @@ class ConfigurationServiceTest {
 
     @Test
     @Order(2)
-    @DisplayName("createConfiguration — disk'e JSON dosyası oluşturulur")
+    @DisplayName("createConfiguration — writes a JSON file to disk")
     void testCreate_writesJsonFile() throws Exception {
         service.createConfiguration(
                 "Test_FileCheck", "Python", ".py",
@@ -75,12 +76,12 @@ class ConfigurationServiceTest {
         );
 
         File jsonFile = new File("config", "Test_FileCheck.json");
-        assertTrue(jsonFile.exists(), "JSON dosyası config/ altında oluşturulmalı");
+        assertTrue(jsonFile.exists(), "JSON file should be created under config/");
     }
 
     @Test
     @Order(3)
-    @DisplayName("createConfiguration — aynı isimde ikinci kayıt exception fırlatır")
+    @DisplayName("createConfiguration — duplicate name throws exception")
     void testCreate_duplicateName_throwsException() throws Exception {
         service.createConfiguration("Test_Dup", "C", ".c", "gcc {src}", "./{out}",
                 new ExactMatchStrategy(), "");
@@ -93,7 +94,7 @@ class ConfigurationServiceTest {
 
     @Test
     @Order(4)
-    @DisplayName("createConfiguration — boş name ile exception fırlatır")
+    @DisplayName("createConfiguration — blank name throws exception")
     void testCreate_blankName_throwsException() {
         assertThrows(IllegalArgumentException.class, () ->
                 service.createConfiguration("", "Java", ".java", "", "java Main",
@@ -103,7 +104,7 @@ class ConfigurationServiceTest {
 
     @Test
     @Order(5)
-    @DisplayName("createConfiguration — boş runCommand ile exception fırlatır")
+    @DisplayName("createConfiguration — blank runCommand throws exception")
     void testCreate_blankRunCommand_throwsException() {
         assertThrows(IllegalArgumentException.class, () ->
                 service.createConfiguration("Test_NoRun", "Java", ".java", "javac {src}", "",
@@ -113,7 +114,7 @@ class ConfigurationServiceTest {
 
     @Test
     @Order(6)
-    @DisplayName("createConfiguration — null ComparisonStrategy ile exception fırlatır")
+    @DisplayName("createConfiguration — null ComparisonStrategy throws exception")
     void testCreate_nullStrategy_throwsException() {
         assertThrows(IllegalArgumentException.class, () ->
                 service.createConfiguration("Test_NullStrat", "Java", ".java",
@@ -123,29 +124,30 @@ class ConfigurationServiceTest {
 
     @Test
     @Order(7)
-    @DisplayName("createConfiguration — sanitize-unsafe karakterli isim reddedilir")
+    @DisplayName("createConfiguration — name with filesystem-unsafe characters is rejected")
     void testCreate_unsafeName_throwsException() {
-        // "/" karakteri sanitizeFileName tarafından "_" yapılır → çakışma riski
+        // "/" is a path separator and would be replaced by "_" during sanitization,
+        // creating a collision risk with another logically distinct name.
         assertThrows(IllegalArgumentException.class, () ->
-                service.createConfiguration("Test_Bad/Name", "Java", ".java",
-                        "javac {src}", "java Main", new ExactMatchStrategy(), ""),
-                "İçinde '/' geçen isim red edilmeli (silent overwrite riski)"
+                        service.createConfiguration("Test_Bad/Name", "Java", ".java",
+                                "javac {src}", "java Main", new ExactMatchStrategy(), ""),
+                "Names containing '/' must be rejected to avoid silent overwrites"
         );
     }
 
     @Test
     @Order(8)
-    @DisplayName("createConfiguration — failed save sonrası cache mutate olmamalı (consistency)")
+    @DisplayName("createConfiguration — failed save does not pollute the cache")
     void testCreate_failedSave_doesNotPolluteCache() {
-        // sanitize-unsafe isim → IO katmanında IllegalArgumentException atar
-        // Cache mutate olmadığını doğrula
+        // An unsafe name causes the IO layer to throw IllegalArgumentException.
+        // Verify the cache is not mutated as a side effect.
         assertThrows(Exception.class, () ->
                 service.createConfiguration("Bad/Name", "Java", ".java",
                         "javac {src}", "java Main", new ExactMatchStrategy(), "")
         );
 
         assertFalse(service.exists("Bad/Name"),
-                "Disk yazımı başarısız olunca cache'de hayalet config kalmamalı");
+                "Cache must not contain a ghost entry when the disk write failed");
     }
 
     // -----------------------------------------------------------------------
@@ -154,7 +156,7 @@ class ConfigurationServiceTest {
 
     @Test
     @Order(9)
-    @DisplayName("getConfiguration — var olan config'i döner")
+    @DisplayName("getConfiguration — returns existing config")
     void testGet_existingConfig() throws Exception {
         service.createConfiguration("Test_Get", "Python", ".py", "", "python3 {src}",
                 new ExactMatchStrategy(), "desc");
@@ -166,14 +168,14 @@ class ConfigurationServiceTest {
 
     @Test
     @Order(10)
-    @DisplayName("getConfiguration — olmayan isim için null döner")
+    @DisplayName("getConfiguration — returns null for missing name")
     void testGet_nonExisting_returnsNull() {
-        assertNull(service.getConfiguration("YokBoyleBirConfig"));
+        assertNull(service.getConfiguration("NoSuchConfigExists"));
     }
 
     @Test
     @Order(11)
-    @DisplayName("getAllConfigurations — eklenen tüm configler listelenir")
+    @DisplayName("getAllConfigurations — lists every added config")
     void testGetAll_returnsAll() throws Exception {
         service.createConfiguration("Test_All1", "Java", ".java", "javac {src}", "java Main",
                 new ExactMatchStrategy(), "");
@@ -187,7 +189,7 @@ class ConfigurationServiceTest {
 
     @Test
     @Order(12)
-    @DisplayName("exists — doğru boolean döner")
+    @DisplayName("exists — returns the correct boolean")
     void testExists() throws Exception {
         assertFalse(service.exists("Test_Var"));
         service.createConfiguration("Test_Var", "C", ".c", "gcc {src}", "./{out}",
@@ -201,27 +203,27 @@ class ConfigurationServiceTest {
 
     @Test
     @Order(13)
-    @DisplayName("updateConfiguration — alanlar güncellenir")
+    @DisplayName("updateConfiguration — fields are updated")
     void testUpdate_fieldsChanged() throws Exception {
         service.createConfiguration("Test_Upd", "Java", ".java", "javac {src}", "java Main",
-                new ExactMatchStrategy(), "eski");
+                new ExactMatchStrategy(), "old");
 
         service.updateConfiguration(
                 "Test_Upd", "Test_Upd",
                 "Java 17", ".java",
                 "javac -source 17 {src}", "java Main",
-                new TrimLinesStrategy(), "yeni açıklama"
+                new TrimLinesStrategy(), "new description"
         );
 
         Configuration updated = service.getConfiguration("Test_Upd");
         assertEquals("Java 17", updated.getLanguage());
-        assertEquals("yeni açıklama", updated.getDescription());
+        assertEquals("new description", updated.getDescription());
         assertInstanceOf(TrimLinesStrategy.class, updated.getComparisonStrategy());
     }
 
     @Test
     @Order(14)
-    @DisplayName("updateConfiguration — isim değiştirilir, cache güncellenir")
+    @DisplayName("updateConfiguration — rename updates the cache")
     void testUpdate_renameConfig_updatesCache() throws Exception {
         service.createConfiguration("Test_OldName", "C", ".c", "gcc {src}", "./{out}",
                 new ExactMatchStrategy(), "");
@@ -229,41 +231,41 @@ class ConfigurationServiceTest {
         service.updateConfiguration("Test_OldName", "Test_NewName", "C", ".c",
                 "gcc {src}", "./{out}", new ExactMatchStrategy(), "");
 
-        assertFalse(service.exists("Test_OldName"), "Eski isim artık olmamalı");
-        assertTrue(service.exists("Test_NewName"), "Yeni isim cache'de olmalı");
+        assertFalse(service.exists("Test_OldName"), "Old name should no longer exist");
+        assertTrue(service.exists("Test_NewName"), "New name should be present in the cache");
     }
 
     @Test
     @Order(15)
-    @DisplayName("updateConfiguration — isim değişince eski JSON dosyası diskten silinir (orphan yok)")
+    @DisplayName("updateConfiguration — old JSON file is deleted on rename (no orphan)")
     void testUpdate_renameConfig_oldFileDeletedFromDisk() throws Exception {
         service.createConfiguration("Test_Orphan", "C", ".c", "gcc {src}", "./{out}",
                 new ExactMatchStrategy(), "");
 
         File oldFile = new File("config", "Test_Orphan.json");
         File newFile = new File("config", "Test_Renamed.json");
-        assertTrue(oldFile.exists(), "Önkoşul: eski dosya disk üstünde olmalı");
+        assertTrue(oldFile.exists(), "Precondition: old file should exist on disk");
 
         service.updateConfiguration("Test_Orphan", "Test_Renamed", "C", ".c",
                 "gcc {src}", "./{out}", new ExactMatchStrategy(), "");
 
-        assertFalse(oldFile.exists(), "Eski dosya orphan kalmamalı, diskten silinmiş olmalı");
-        assertTrue(newFile.exists(), "Yeni isimli dosya disk üstünde olmalı");
+        assertFalse(oldFile.exists(), "Old file must be deleted to avoid an orphan");
+        assertTrue(newFile.exists(), "Renamed file should exist on disk");
     }
 
     @Test
     @Order(16)
-    @DisplayName("updateConfiguration — olmayan config güncellenince exception fırlatır")
+    @DisplayName("updateConfiguration — updating a missing config throws exception")
     void testUpdate_nonExisting_throwsException() {
         assertThrows(IllegalArgumentException.class, () ->
-                service.updateConfiguration("Test_Hayalet", "Test_Hayalet", "C", ".c",
+                service.updateConfiguration("Test_Ghost", "Test_Ghost", "C", ".c",
                         "gcc {src}", "./{out}", new ExactMatchStrategy(), "")
         );
     }
 
     @Test
     @Order(17)
-    @DisplayName("updateConfiguration — null ComparisonStrategy ile exception fırlatır")
+    @DisplayName("updateConfiguration — null ComparisonStrategy throws exception")
     void testUpdate_nullStrategy_throwsException() throws Exception {
         service.createConfiguration("Test_UpdNullStrat", "Java", ".java",
                 "javac {src}", "java Main", new ExactMatchStrategy(), "");
@@ -280,7 +282,7 @@ class ConfigurationServiceTest {
 
     @Test
     @Order(18)
-    @DisplayName("deleteConfiguration — config cache'den kaldırılır")
+    @DisplayName("deleteConfiguration — removes config from the cache")
     void testDelete_removesFromCache() throws Exception {
         service.createConfiguration("Test_Del", "Python", ".py", "", "python3 {src}",
                 new ExactMatchStrategy(), "");
@@ -288,27 +290,27 @@ class ConfigurationServiceTest {
 
         service.deleteConfiguration("Test_Del");
 
-        assertFalse(service.exists("Test_Del"), "Silinen config artık cache'de olmamalı");
+        assertFalse(service.exists("Test_Del"), "Deleted config must no longer be in the cache");
     }
 
     @Test
     @Order(19)
-    @DisplayName("deleteConfiguration — JSON dosyası diskten silinir (kalıcı silme)")
+    @DisplayName("deleteConfiguration — removes JSON file from disk (hard delete)")
     void testDelete_removesFileFromDisk() throws Exception {
         service.createConfiguration("Test_HardDel", "Python", ".py", "", "python3 {src}",
                 new ExactMatchStrategy(), "");
 
         File jsonFile = new File("config", "Test_HardDel.json");
-        assertTrue(jsonFile.exists(), "Önkoşul: dosya disk üstünde olmalı");
+        assertTrue(jsonFile.exists(), "Precondition: file should exist on disk");
 
         service.deleteConfiguration("Test_HardDel");
 
-        assertFalse(jsonFile.exists(), "Dosya diskten de silinmiş olmalı");
+        assertFalse(jsonFile.exists(), "File should be deleted from disk");
     }
 
     @Test
     @Order(20)
-    @DisplayName("deleteConfiguration — silinen config yeniden yüklemeden sonra geri gelmemeli")
+    @DisplayName("deleteConfiguration — deleted config does not reappear after reload")
     void testDelete_doesNotReappearAfterReload() throws Exception {
         service.createConfiguration("Test_NoReappear", "C", ".c", "gcc {src}", "./{out}",
                 new ExactMatchStrategy(), "");
@@ -317,15 +319,15 @@ class ConfigurationServiceTest {
         service.reloadFromDisk();
 
         assertFalse(service.exists("Test_NoReappear"),
-                "Silinen config disk reload sonrası geri gelmemeli");
+                "Deleted config must not come back after a disk reload");
     }
 
     @Test
     @Order(21)
-    @DisplayName("deleteConfiguration — olmayan config silinince exception fırlatır")
+    @DisplayName("deleteConfiguration — deleting a missing config throws exception")
     void testDelete_nonExisting_throwsException() {
         assertThrows(IllegalArgumentException.class, () ->
-                service.deleteConfiguration("Test_YokBurada")
+                service.deleteConfiguration("Test_NotHere")
         );
     }
 
@@ -335,7 +337,7 @@ class ConfigurationServiceTest {
 
     @Test
     @Order(22)
-    @DisplayName("reloadFromDisk — kaydedilmemiş cache girdileri silinmeli")
+    @DisplayName("reloadFromDisk — unsaved cache entries are removed")
     void testReload_clearsUnsavedCacheEntries() {
         Configuration ghost = new com.iae.domain.ConfigurationBuilder()
                 .setName("Test_GhostInCache")
@@ -347,21 +349,21 @@ class ConfigurationServiceTest {
                 .setDescription("")
                 .build();
         ConfigurationManager.getInstance().addConfiguration(ghost);
-        assertTrue(service.exists("Test_GhostInCache"), "Önkoşul: cache'de olmalı");
+        assertTrue(service.exists("Test_GhostInCache"), "Precondition: entry should be in the cache");
 
         service.reloadFromDisk();
 
         assertFalse(service.exists("Test_GhostInCache"),
-                "Reload sonrası diskte olmayan cache girdisi silinmiş olmalı");
+                "Cache entries that are not on disk must be evicted after reload");
     }
 
     // -----------------------------------------------------------------------
-    // ComparisonStrategy korunumu
+    // ComparisonStrategy round-trip
     // -----------------------------------------------------------------------
 
     @Test
     @Order(23)
-    @DisplayName("IgnoreWhitespaceStrategy config oluşturulunca korunur")
+    @DisplayName("IgnoreWhitespaceStrategy is preserved on creation")
     void testCreate_ignoreWhitespaceStrategy_preserved() throws Exception {
         service.createConfiguration(
                 "Test_IWS", "Python", ".py",
