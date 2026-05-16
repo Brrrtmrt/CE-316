@@ -2,6 +2,7 @@ package com.iae.service;
 
 import com.iae.domain.Configuration;
 import com.iae.persistence.ConfigurationIO;
+import com.iae.persistence.ConfigurationPersistenceException;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -26,7 +27,9 @@ public class ConfigurationManager {
         return instance;
     }
 
-
+    // -------------------------------------------------------------------------
+    // Cache operations
+    // -------------------------------------------------------------------------
 
     public void addConfiguration(Configuration configuration) {
         configurationCache.put(configuration.getName(), configuration);
@@ -58,8 +61,13 @@ public class ConfigurationManager {
         configurationCache.clear();
     }
 
+    // -------------------------------------------------------------------------
+    // Persistence – load
+    // -------------------------------------------------------------------------
+
 
     public void loadConfigurations() {
+        configurationCache.clear();
         try {
             List<Configuration> configs = configurationIO.loadAllConfigurations();
             for (Configuration config : configs) {
@@ -71,58 +79,101 @@ public class ConfigurationManager {
         }
     }
 
+    // -------------------------------------------------------------------------
+    // Persistence – save
+    // -------------------------------------------------------------------------
 
-    public void saveConfiguration(Configuration configuration) throws Exception {
+
+    public void saveConfiguration(Configuration configuration) throws ConfigurationPersistenceException {
         configurationCache.put(configuration.getName(), configuration);
-        configurationIO.saveConfiguration(configuration);
-    }
-
-
-    public void renameAndSaveConfiguration(String oldName, Configuration newConfiguration) throws Exception {
-        configurationCache.remove(oldName);
-        configurationCache.put(newConfiguration.getName(), newConfiguration);
-
-        configurationIO.saveConfiguration(newConfiguration);
-
-        if (oldName != null && !oldName.equals(newConfiguration.getName())) {
-            configurationIO.deleteFile(oldName);
+        try {
+            configurationIO.saveConfiguration(configuration);
+        } catch (Exception e) {
+            throw new ConfigurationPersistenceException(
+                    "Failed to save configuration '" + configuration.getName() + "'.", e);
         }
     }
 
 
-    public void saveAllConfigurations() throws Exception {
-        Exception lastError = null;
+    public void renameAndSaveConfiguration(String oldName, Configuration newConfiguration)
+            throws ConfigurationPersistenceException {
+
+        configurationCache.remove(oldName);
+        configurationCache.put(newConfiguration.getName(), newConfiguration);
+
+        try {
+            configurationIO.saveConfiguration(newConfiguration);
+            if (oldName != null && !oldName.equals(newConfiguration.getName())) {
+                configurationIO.deleteFile(oldName);
+            }
+        } catch (Exception e) {
+            throw new ConfigurationPersistenceException(
+                    "Failed to rename configuration from '" + oldName + "' to '"
+                            + newConfiguration.getName() + "'.", e);
+        }
+    }
+
+
+    public void saveAllConfigurations() throws ConfigurationPersistenceException {
+        List<String> failures = new ArrayList<>();
+        Throwable lastCause = null;
+
         for (Configuration config : configurationCache.values()) {
             try {
                 configurationIO.saveConfiguration(config);
             } catch (Exception e) {
                 System.err.println("Failed to save configuration '" + config.getName() + "': " + e.getMessage());
-                lastError = e;
+                failures.add(config.getName());
+                lastCause = e;
             }
         }
-        if (lastError != null) {
-            throw new Exception("One or more configurations could not be saved.", lastError);
+
+        if (!failures.isEmpty()) {
+            throw new ConfigurationPersistenceException(
+                    "Failed to save the following configuration(s): " + failures, lastCause);
         }
     }
 
-    public boolean deleteConfigurationFromDisk(String name) throws Exception {
+    // -------------------------------------------------------------------------
+    // Persistence – delete
+    // -------------------------------------------------------------------------
+
+
+    public boolean deleteConfigurationFromDisk(String name) throws ConfigurationPersistenceException {
         configurationCache.remove(name);
-        return configurationIO.deleteFile(name);
+        try {
+            return configurationIO.deleteFile(name);
+        } catch (Exception e) {
+            throw new ConfigurationPersistenceException(
+                    "Failed to delete configuration file for '" + name + "'.", e);
+        }
     }
 
+    // -------------------------------------------------------------------------
+    // Import / Export (delegated to ConfigurationIO)
+    // -------------------------------------------------------------------------
 
-
-    public void exportConfiguration(String name, String filePath) throws Exception {
+    public void exportConfiguration(String name, String filePath) throws ConfigurationPersistenceException {
         Configuration config = configurationCache.get(name);
         if (config == null) {
             throw new IllegalArgumentException("Configuration not found: " + name);
         }
-        configurationIO.exportToFile(config, filePath);
+        try {
+            configurationIO.exportToFile(config, filePath);
+        } catch (Exception e) {
+            throw new ConfigurationPersistenceException(
+                    "Failed to export configuration '" + name + "' to '" + filePath + "'.", e);
+        }
     }
 
-    public Configuration importConfiguration(String filePath) throws Exception {
-        Configuration config = configurationIO.importFromFile(filePath);
-        configurationCache.put(config.getName(), config);
-        return config;
+    public Configuration importConfiguration(String filePath) throws ConfigurationPersistenceException {
+        try {
+            Configuration config = configurationIO.importFromFile(filePath);
+            configurationCache.put(config.getName(), config);
+            return config;
+        } catch (Exception e) {
+            throw new ConfigurationPersistenceException(
+                    "Failed to import configuration from '" + filePath + "'.", e);
+        }
     }
 }

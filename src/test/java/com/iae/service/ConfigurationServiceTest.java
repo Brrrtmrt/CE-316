@@ -38,6 +38,7 @@ class ConfigurationServiceTest {
     }
 
 
+
     @Test
     @Order(1)
     @DisplayName("createConfiguration — başarılı oluşturma ve cache'e ekleme")
@@ -101,10 +102,19 @@ class ConfigurationServiceTest {
         );
     }
 
+    @Test
+    @Order(6)
+    @DisplayName("createConfiguration — null ComparisonStrategy ile exception fırlatır")
+    void testCreate_nullStrategy_throwsException() {
+        assertThrows(IllegalArgumentException.class, () ->
+                service.createConfiguration("Test_NullStrat", "Java", ".java",
+                        "javac {src}", "java Main", null, "")
+        );
+    }
 
 
     @Test
-    @Order(6)
+    @Order(7)
     @DisplayName("getConfiguration — var olan config'i döner")
     void testGet_existingConfig() throws Exception {
         service.createConfiguration("Test_Get", "Python", ".py", "", "python3 {src}",
@@ -116,14 +126,14 @@ class ConfigurationServiceTest {
     }
 
     @Test
-    @Order(7)
+    @Order(8)
     @DisplayName("getConfiguration — olmayan isim için null döner")
     void testGet_nonExisting_returnsNull() {
         assertNull(service.getConfiguration("YokBoyleBirConfig"));
     }
 
     @Test
-    @Order(8)
+    @Order(9)
     @DisplayName("getAllConfigurations — eklenen tüm configler listelenir")
     void testGetAll_returnsAll() throws Exception {
         service.createConfiguration("Test_All1", "Java", ".java", "javac {src}", "java Main",
@@ -137,7 +147,7 @@ class ConfigurationServiceTest {
     }
 
     @Test
-    @Order(9)
+    @Order(10)
     @DisplayName("exists — doğru boolean döner")
     void testExists() throws Exception {
         assertFalse(service.exists("Test_Var"));
@@ -149,7 +159,7 @@ class ConfigurationServiceTest {
 
 
     @Test
-    @Order(10)
+    @Order(11)
     @DisplayName("updateConfiguration — alanlar güncellenir")
     void testUpdate_fieldsChanged() throws Exception {
         service.createConfiguration("Test_Upd", "Java", ".java", "javac {src}", "java Main",
@@ -169,7 +179,7 @@ class ConfigurationServiceTest {
     }
 
     @Test
-    @Order(11)
+    @Order(12)
     @DisplayName("updateConfiguration — isim değiştirilir, cache güncellenir")
     void testUpdate_renameConfig_updatesCache() throws Exception {
         service.createConfiguration("Test_OldName", "C", ".c", "gcc {src}", "./{out}",
@@ -183,7 +193,7 @@ class ConfigurationServiceTest {
     }
 
     @Test
-    @Order(12)
+    @Order(13)
     @DisplayName("updateConfiguration — isim değişince eski JSON dosyası diskten silinir (orphan yok)")
     void testUpdate_renameConfig_oldFileDeletedFromDisk() throws Exception {
         service.createConfiguration("Test_Orphan", "C", ".c", "gcc {src}", "./{out}",
@@ -201,7 +211,7 @@ class ConfigurationServiceTest {
     }
 
     @Test
-    @Order(13)
+    @Order(14)
     @DisplayName("updateConfiguration — olmayan config güncellenince exception fırlatır")
     void testUpdate_nonExisting_throwsException() {
         assertThrows(IllegalArgumentException.class, () ->
@@ -210,10 +220,23 @@ class ConfigurationServiceTest {
         );
     }
 
+    @Test
+    @Order(15)
+    @DisplayName("updateConfiguration — null ComparisonStrategy ile exception fırlatır")
+    void testUpdate_nullStrategy_throwsException() throws Exception {
+        service.createConfiguration("Test_UpdNullStrat", "Java", ".java",
+                "javac {src}", "java Main", new ExactMatchStrategy(), "");
+
+        assertThrows(IllegalArgumentException.class, () ->
+                service.updateConfiguration("Test_UpdNullStrat", "Test_UpdNullStrat",
+                        "Java", ".java", "javac {src}", "java Main", null, "")
+        );
+    }
+
 
 
     @Test
-    @Order(14)
+    @Order(16)
     @DisplayName("deleteConfiguration — config cache'den kaldırılır")
     void testDelete_removesFromCache() throws Exception {
         service.createConfiguration("Test_Del", "Python", ".py", "", "python3 {src}",
@@ -226,7 +249,7 @@ class ConfigurationServiceTest {
     }
 
     @Test
-    @Order(15)
+    @Order(17)
     @DisplayName("deleteConfiguration — JSON dosyası diskten silinir (kalıcı silme)")
     void testDelete_removesFileFromDisk() throws Exception {
         service.createConfiguration("Test_HardDel", "Python", ".py", "", "python3 {src}",
@@ -241,21 +264,21 @@ class ConfigurationServiceTest {
     }
 
     @Test
-    @Order(16)
-    @DisplayName("deleteConfiguration — silinen config yeniden başlatmadan sonra geri gelmemeli")
+    @Order(18)
+    @DisplayName("deleteConfiguration — silinen config yeniden yüklemeden sonra geri gelmemeli")
     void testDelete_doesNotReappearAfterReload() throws Exception {
         service.createConfiguration("Test_NoReappear", "C", ".c", "gcc {src}", "./{out}",
                 new ExactMatchStrategy(), "");
 
         service.deleteConfiguration("Test_NoReappear");
-
         service.reloadFromDisk();
+
         assertFalse(service.exists("Test_NoReappear"),
                 "Silinen config disk reload sonrası geri gelmemeli");
     }
 
     @Test
-    @Order(17)
+    @Order(19)
     @DisplayName("deleteConfiguration — olmayan config silinince exception fırlatır")
     void testDelete_nonExisting_throwsException() {
         assertThrows(IllegalArgumentException.class, () ->
@@ -264,8 +287,35 @@ class ConfigurationServiceTest {
     }
 
 
+
     @Test
-    @Order(18)
+    @Order(20)
+    @DisplayName("reloadFromDisk — kaydedilmemiş cache girdileri silinmeli")
+    void testReload_clearsUnsavedCacheEntries() {
+
+        Configuration ghost = new com.iae.domain.ConfigurationBuilder()
+                .setName("Test_GhostInCache")
+                .setLanguage("Java")
+                .setFileExtension(".java")
+                .setCompileCommand("javac {src}")
+                .setRunCommand("java Main")
+                .setComparisonStrategy(new ExactMatchStrategy())
+                .setDescription("")
+                .build();
+        ConfigurationManager.getInstance().addConfiguration(ghost);
+        assertTrue(service.exists("Test_GhostInCache"), "Önkoşul: cache'de olmalı");
+
+
+        service.reloadFromDisk();
+
+        assertFalse(service.exists("Test_GhostInCache"),
+                "Reload sonrası diskte olmayan cache girdisi silinmiş olmalı");
+    }
+
+
+
+    @Test
+    @Order(21)
     @DisplayName("IgnoreWhitespaceStrategy config oluşturulunca korunur")
     void testCreate_ignoreWhitespaceStrategy_preserved() throws Exception {
         service.createConfiguration(

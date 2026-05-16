@@ -3,6 +3,7 @@ package com.iae.service;
 import com.iae.domain.Configuration;
 import com.iae.domain.ConfigurationBuilder;
 import com.iae.evaluation.strategies.ComparisonStrategy;
+import com.iae.persistence.ConfigurationPersistenceException;
 
 import java.util.List;
 
@@ -15,7 +16,9 @@ public class ConfigurationService {
         this.manager = ConfigurationManager.getInstance();
     }
 
-
+    // -------------------------------------------------------------------------
+    // Create
+    // -------------------------------------------------------------------------
 
 
     public Configuration createConfiguration(
@@ -25,11 +28,12 @@ public class ConfigurationService {
             String compileCommand,
             String runCommand,
             ComparisonStrategy comparisonStrategy,
-            String description) throws Exception {
+            String description) throws ConfigurationPersistenceException {
 
         validateNotBlank(name, "Name");
         validateNotBlank(language, "Language");
         validateNotBlank(runCommand, "Run command");
+        validateNotNull(comparisonStrategy, "Comparison strategy");
 
         if (manager.configurationExists(name.trim())) {
             throw new IllegalArgumentException(
@@ -50,6 +54,10 @@ public class ConfigurationService {
         return config;
     }
 
+    // -------------------------------------------------------------------------
+    // Read
+    // -------------------------------------------------------------------------
+
 
     public Configuration getConfiguration(String name) {
         if (name == null || name.isBlank()) return null;
@@ -66,6 +74,10 @@ public class ConfigurationService {
         return name != null && manager.configurationExists(name.trim());
     }
 
+    // -------------------------------------------------------------------------
+    // Update
+    // -------------------------------------------------------------------------
+
 
     public Configuration updateConfiguration(
             String oldName,
@@ -75,12 +87,13 @@ public class ConfigurationService {
             String compileCommand,
             String runCommand,
             ComparisonStrategy comparisonStrategy,
-            String description) throws Exception {
+            String description) throws ConfigurationPersistenceException {
 
         validateNotBlank(oldName, "Old name");
         validateNotBlank(newName, "New name");
         validateNotBlank(language, "Language");
         validateNotBlank(runCommand, "Run command");
+        validateNotNull(comparisonStrategy, "Comparison strategy");
 
         if (!manager.configurationExists(oldName.trim())) {
             throw new IllegalArgumentException(
@@ -102,13 +115,16 @@ public class ConfigurationService {
                 .setDescription(description == null ? "" : description.trim())
                 .build();
 
-        // Rename-aware save: writes new file AND deletes old file if name changed
         manager.renameAndSaveConfiguration(oldName.trim(), updated);
         return updated;
     }
 
+    // -------------------------------------------------------------------------
+    // Delete
+    // -------------------------------------------------------------------------
 
-    public void deleteConfiguration(String name) throws Exception {
+
+    public void deleteConfiguration(String name) throws ConfigurationPersistenceException {
         validateNotBlank(name, "Name");
         if (!manager.configurationExists(name.trim())) {
             throw new IllegalArgumentException(
@@ -117,21 +133,33 @@ public class ConfigurationService {
         manager.deleteConfigurationFromDisk(name.trim());
     }
 
+    // -------------------------------------------------------------------------
+    // Bulk persistence helpers
+    // -------------------------------------------------------------------------
+
 
     public void reloadFromDisk() {
         manager.loadConfigurations();
     }
 
 
-    public void saveAll() throws Exception {
+    public void saveAll() throws ConfigurationPersistenceException {
         manager.saveAllConfigurations();
     }
 
-
+    // -------------------------------------------------------------------------
+    // Internal helpers
+    // -------------------------------------------------------------------------
 
     private void validateNotBlank(String value, String fieldName) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(fieldName + " must not be blank.");
+        }
+    }
+
+    private void validateNotNull(Object value, String fieldName) {
+        if (value == null) {
+            throw new IllegalArgumentException(fieldName + " must not be null.");
         }
     }
 }
