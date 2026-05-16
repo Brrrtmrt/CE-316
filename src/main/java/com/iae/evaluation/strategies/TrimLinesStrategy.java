@@ -2,8 +2,6 @@ package com.iae.evaluation.strategies;
 
 public class TrimLinesStrategy implements ComparisonStrategy {
 
-    private static final String regex = "\\r?\\n";
-
     @Override
     public boolean compare(String actual, String expected) {
         if (actual == null && expected == null) {
@@ -14,20 +12,17 @@ public class TrimLinesStrategy implements ComparisonStrategy {
             return false;
         }
 
-        String[] actualLines = actual.split(regex);
-        String[] expectedLines = expected.split(regex);
+        return normalize(actual).equals(normalize(expected));
+    }
 
-        if (actualLines.length != expectedLines.length) {
-            return false;
+    private String normalize(String text) {
+        String s = text.replace("\r\n", "\n").replace("\r", "\n");
+        String[] lines = s.split("\n", -1);
+        StringBuilder sb = new StringBuilder();
+        for (String line : lines) {
+            sb.append(line.stripTrailing()).append("\n");
         }
-
-        for (int i = 0; i < actualLines.length; i++) {
-            if (!actualLines[i].trim().equals(expectedLines[i].trim())) {
-                return false;
-            }
-        }
-
-        return true;
+        return sb.toString().strip();
     }
 
     @Override

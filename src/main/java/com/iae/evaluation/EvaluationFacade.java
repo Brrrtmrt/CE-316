@@ -156,17 +156,21 @@ public class EvaluationFacade {
         result.setUnzipSuccess(unzipResult.isSuccess());
 
         if (!unzipResult.isSuccess()) {
-            result.setErrorLog(unzipResult.getErrorDetails());
+            result.setErrorLog(errorMessage(unzipResult));
             return result;
         }
 
-        CompileStep compileStep = new CompileStep(commandExecutor, config);
-        StepResult compileResult = compileStep.execute(submission);
-        result.setCompileSuccess(compileResult.isSuccess());
-
-        if (!compileResult.isSuccess()) {
-            result.setErrorLog(compileResult.getErrorDetails());
-            return result;
+        boolean needsCompile = config.getCompileCommand() != null && !config.getCompileCommand().isBlank();
+        if (needsCompile) {
+            CompileStep compileStep = new CompileStep(commandExecutor, config);
+            StepResult compileResult = compileStep.execute(submission);
+            result.setCompileSuccess(compileResult.isSuccess());
+            if (!compileResult.isSuccess()) {
+                result.setErrorLog(errorMessage(compileResult));
+                return result;
+            }
+        } else {
+            result.setCompileSuccess(true);
         }
 
         RunStep runStep = new RunStep(commandExecutor, config, project.getProgramArguments());
@@ -174,7 +178,7 @@ public class EvaluationFacade {
         result.setRunSuccess(runResult.isSuccess());
 
         if (!runResult.isSuccess()) {
-            result.setErrorLog(runResult.getErrorDetails());
+            result.setErrorLog(errorMessage(runResult));
             return result;
         }
 
@@ -211,6 +215,10 @@ public class EvaluationFacade {
      * @return the comparison strategy to use
      * @throws IllegalStateException if ComparisonStrategy is null
      */
+    private String errorMessage(StepResult r) {
+        return r.getErrorDetails() != null ? r.getErrorDetails() : r.getMessage();
+    }
+
     private ComparisonStrategy createComparisonStrategy(Configuration config) {
         ComparisonStrategy strat = config.getComparisonStrategy();
         if (strat == null) {

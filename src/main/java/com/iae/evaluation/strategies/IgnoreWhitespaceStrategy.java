@@ -13,10 +13,11 @@ public class IgnoreWhitespaceStrategy implements ComparisonStrategy {
             return false;
         }
 
-        String normalizedActual = actual.replaceAll(regex, "");
-        String normalizedExpected = expected.replaceAll(regex, "");
+        return normalize(actual).equals(normalize(expected));
+    }
 
-        return normalizedActual.equals(normalizedExpected);
+    private String normalize(String text) {
+        return text.replaceAll(regex, " ").strip();
     }
 
     @Override

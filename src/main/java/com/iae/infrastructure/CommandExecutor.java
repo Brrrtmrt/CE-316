@@ -44,7 +44,8 @@ public class CommandExecutor {
 
     private static final String os = System.getProperty("os.name").toLowerCase();
     private static final String separator = System.lineSeparator();
-    private static final long DEFAULT_TIMEOUT_SECONDS = 30; // TODO: DB config
+    private static final long DEFAULT_TIMEOUT_SECONDS = 30;
+    private static final int MAX_OUTPUT_CHARS = 50_000;
 
 
     /**
@@ -106,11 +107,16 @@ public class CommandExecutor {
 
         Process process = pb.start();
 
-        // Capture output
+        // Capture output (capped to prevent OOM from infinite-loop programs)
         StringBuilder output = new StringBuilder();
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
             String line;
             while ((line = reader.readLine()) != null) {
+                if (output.length() >= MAX_OUTPUT_CHARS) {
+                    output.append("\n[output truncated]");
+                    while (reader.readLine() != null) ; // drain to prevent deadlock
+                    break;
+                }
                 output.append(line).append(separator);
             }
         }

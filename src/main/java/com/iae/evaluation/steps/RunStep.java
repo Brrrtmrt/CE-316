@@ -24,22 +24,28 @@ public class RunStep extends AbstractEvaluationStep {
     protected void validate(StudentSubmission submission) throws Exception {
         super.validate(submission);
 
-        if (submission.getExecutableFile() == null) {
-            throw new IllegalStateException("Executable file path not set on submission");
-        }
-
-        if (!submission.getExecutableFile().exists()) {
-            throw new IllegalStateException("Executable does not exist — compilation may have failed: "
-                    + submission.getExecutableFile());
+        boolean usesExecutable = configuration.getRunCommand().contains("{out}");
+        if (usesExecutable) {
+            if (submission.getExecutableFile() == null) {
+                throw new IllegalStateException("Executable file path not set on submission");
+            }
+            if (!submission.getExecutableFile().exists()) {
+                throw new IllegalStateException("Executable does not exist — compilation may have failed: "
+                        + submission.getExecutableFile());
+            }
         }
     }
 
     @Override
     protected StepResult doExecute(StudentSubmission submission) throws Exception {
-        // Config template uses {out} for the executable path and {args} for program arguments.
         String args = String.join(" ", programArguments);
+        String outPath = submission.getExecutableFile() != null
+                ? submission.getExecutableFile().getAbsolutePath() : "";
+        String srcPath = submission.getSourceFile() != null
+                ? submission.getSourceFile().getAbsolutePath() : "";
         String runCommand = configuration.getRunCommand()
-                .replace("{out}", submission.getExecutableFile().getAbsolutePath())
+                .replace("{out}", outPath)
+                .replace("{src}", srcPath)
                 .replace("{args}", args);
 
         // Trim any trailing whitespace left by an empty {args} substitution.
