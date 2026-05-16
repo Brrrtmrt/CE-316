@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Font?>
+
+<VBox spacing="20.0" style="-fx-background-color: #ffffff;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.iae.gui.controllers.ConfigurationController">
+    <padding>
+        <Insets bottom="30.0" left="40.0" right="40.0" top="30.0" />
+    </padding>
+
+    <Label text="Configuration Settings" textFill="#333333">
+        <font>
+            <Font name="System Bold" size="24.0" />
+        </font>
+    </Label>
+
+    <Label text="Create a new configuration." textFill="#666666" />
+
+    <Separator prefWidth="200.0" />
+
+    <GridPane hgap="15.0" vgap="20.0">
+        <columnConstraints>
+            <ColumnConstraints halignment="LEFT" minWidth="150.0" prefWidth="200.0" />
+            <ColumnConstraints hgrow="ALWAYS" minWidth="200.0" />
+        </columnConstraints>
+        <rowConstraints>
+            <RowConstraints minHeight="30.0" prefHeight="30.0" vgrow="SOMETIMES" />
+            <RowConstraints minHeight="30.0" prefHeight="30.0" vgrow="SOMETIMES" />
+            <RowConstraints minHeight="30.0" prefHeight="30.0" vgrow="SOMETIMES" />
+            <RowConstraints minHeight="30.0" prefHeight="30.0" vgrow="SOMETIMES" />
+            <RowConstraints minHeight="30.0" prefHeight="30.0" vgrow="SOMETIMES" />
+            <RowConstraints minHeight="30.0" prefHeight="30.0" vgrow="SOMETIMES" />
+        </rowConstraints>
+
+        <children>
+            <Label text="Programming language:" GridPane.columnIndex="0" GridPane.rowIndex="0">
+                <font><Font size="14.0" /></font>
+            </Label>
+            <TextField fx:id="txtConfigName" promptText="e.g. C Programming" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+
+            <Label text="File Extension:" GridPane.columnIndex="0" GridPane.rowIndex="1">
+                <font><Font size="14.0" /></font>
+            </Label>
+            <TextField fx:id="txtFileExtension" promptText="e.g. .c or .java" GridPane.columnIndex="1" GridPane.rowIndex="1" />
+
+            <Label text="Compiler / Interpreter Path:" GridPane.columnIndex="0" GridPane.rowIndex="2">
+                <font><Font size="14.0" /></font>
+            </Label>
+            <TextField fx:id="txtCompilerPath" promptText="e.g. C:\MinGW\bin\gcc.exe" GridPane.columnIndex="1" GridPane.rowIndex="2" />
+
+            <Label text="Compile Command:" GridPane.columnIndex="0" GridPane.rowIndex="3">
+                <font><Font size="14.0" /></font>
+            </Label>
+            <TextField fx:id="txtCompileCommand" promptText="e.g. gcc {src} -o {out}.exe" GridPane.columnIndex="1" GridPane.rowIndex="3" />
+
+            <Label text="Run Command:" GridPane.columnIndex="0" GridPane.rowIndex="4">
+                <font><Font size="14.0" /></font>
+            </Label>
+            <TextField fx:id="txtRunCommand" promptText="e.g. {out}.exe" GridPane.columnIndex="1" GridPane.rowIndex="4" />
+
+            <Label text="Comparison Strategy:" GridPane.columnIndex="0" GridPane.rowIndex="5">
+                <font><Font size="14.0" /></font>
+            </Label>
+            <ComboBox fx:id="cmbComparisonStrategy" prefWidth="250.0" promptText="Select a strategy..." GridPane.columnIndex="1" GridPane.rowIndex="5" />
+        </children>
+    </GridPane>
+
+    <HBox alignment="CENTER_RIGHT" prefHeight="50.0" spacing="10.0">
+        <children>
+            <Label fx:id="lblStatus" text="" textFill="GREEN" visible="false" />
+            <Button fx:id="btnSave" mnemonicParsing="false" prefHeight="40.0" prefWidth="150.0" style="-fx-background-color: #3266ad; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14px;" text="Save Configuration" />
+        </children>
+    </HBox>
+</VBox>

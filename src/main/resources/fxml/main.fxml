@@ -44,7 +44,7 @@
    <center>
       <StackPane fx:id="contentArea" BorderPane.alignment="CENTER">
          <children>
-            <Label text="Lütfen soldan bir işlem seçiniz." textFill="#999999" />
+            <Label text="Please select an action from the left." textFill="#999999" />
          </children>
       </StackPane>
    </center>
