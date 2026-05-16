@@ -201,7 +201,7 @@ public class FileSystemManager {
      * sanitizeStudentID("")             → "unknown"
      * </pre>
      */
-    private static String sanitizeStudentID(String studentID) {
+    public static String sanitizeStudentID(String studentID) {
         if (studentID == null || studentID.trim().isEmpty()) {
             return "unknown";
         }
