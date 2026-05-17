@@ -179,7 +179,7 @@
                                     <executable>${java.home}/bin/jpackage</executable>
                                     <arguments>
                                         <argument>--type</argument>
-                                        <argument>app-image</argument>
+                                        <argument>exe</argument>
                                         <argument>--input</argument>
                                         <argument>${project.build.directory}/installer-input</argument>
                                         <argument>--main-jar</argument>
@@ -192,6 +192,9 @@
                                         <argument>IAE</argument>
                                         <argument>--app-version</argument>
                                         <argument>1.0.0</argument>
+                                        <argument>--win-shortcut</argument>
+                                        <argument>--win-menu</argument>
+                                        <argument>--win-dir-chooser</argument>
                                     </arguments>
                                 </configuration>
                             </execution>
