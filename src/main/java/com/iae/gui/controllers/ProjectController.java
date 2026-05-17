@@ -108,6 +108,26 @@ public class ProjectController {
             Project newProject = new Project(selectedConfig, dirPath, argsArray, expectedOutput);
             newProject.setName(txtProjectName.getText());
             projectService.addProject(newProject);
+            
+            lblStatus.setText("Evaluating project... Please wait.");
+            lblStatus.setTextFill(Color.BLUE);
+
+            com.iae.service.EvaluationService evalService = new com.iae.service.EvaluationService();
+            java.util.List<com.iae.domain.EvaluationResult> results = evalService.evaluateProject(newProject);
+
+            javafx.fxml.FXMLLoader loader = new javafx.fxml.FXMLLoader(getClass().getResource("/fxml/Results.fxml"));
+            javafx.scene.Parent resultsView = loader.load();
+
+            com.iae.gui.controllers.ResultsController resultsController = loader.getController();
+            resultsController.loadResults(results);
+
+            javafx.scene.layout.StackPane contentArea = (javafx.scene.layout.StackPane) btnCreateProject.getScene().lookup("#contentArea");
+            if (contentArea != null) {
+                contentArea.getChildren().clear();
+                contentArea.getChildren().add(resultsView);
+            }
+            
+            
 
             lblStatus.setText("Project created successfully!");
             lblStatus.setTextFill(Color.GREEN);
