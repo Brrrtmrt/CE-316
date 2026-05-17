@@ -31,6 +31,84 @@ public class ProjectService {
         this.projectDAO = projectDAO;
     }
 
+    private void validateProject(Project project) {
+        if (project == null) {
+            throw new IllegalArgumentException(
+                    "Project cannot be null"
+            );
+        }
+
+        if (project.getName() == null ||
+                project.getName().isBlank()) {
+
+            throw new IllegalArgumentException(
+                    "Project name is required"
+            );
+        }
+
+        Configuration cfg = project.getConfiguration();
+
+        if (cfg == null) {
+            throw new IllegalArgumentException(
+                    "Project must have a configuration"
+            );
+        }
+
+        if (cfg.getName() == null ||
+                cfg.getName().isBlank()) {
+
+            throw new IllegalArgumentException(
+                    "Configuration name is required"
+            );
+        }
+
+        if (cfg.getLanguage() == null ||
+                cfg.getLanguage().isBlank()) {
+
+            throw new IllegalArgumentException(
+                    "Configuration language is required"
+            );
+        }
+
+        if (cfg.getFileExtension() == null ||
+                cfg.getFileExtension().isBlank()) {
+
+            throw new IllegalArgumentException(
+                    "Configuration file extension is required"
+            );
+        }
+
+        if (cfg.getRunCommand() == null ||
+                cfg.getRunCommand().isBlank()) {
+
+            throw new IllegalArgumentException(
+                    "Configuration run command is required"
+            );
+        }
+
+        if (cfg.getComparisonStrategy() == null) {
+            throw new IllegalArgumentException(
+                    "Configuration must have a comparison strategy"
+            );
+        }
+
+        if (project.getSubmissionsDirectory() == null ||
+                project.getSubmissionsDirectory().isBlank()) {
+
+            throw new IllegalArgumentException(
+                    "Submissions directory is required"
+            );
+        }
+
+        if (project.getExpectedOutput() == null ||
+                project.getExpectedOutput().isBlank()) {
+
+            throw new IllegalArgumentException(
+                    "Expected output is required"
+            );
+        }
+    }
+
     public void addProject(Project project) {
         validateProject(project);
 
@@ -173,83 +251,7 @@ public class ProjectService {
         }
     }
 
-    private void validateProject(Project project) {
-        if (project == null) {
-            throw new IllegalArgumentException(
-                    "Project cannot be null"
-            );
-        }
 
-        if (project.getName() == null ||
-                project.getName().isBlank()) {
-
-            throw new IllegalArgumentException(
-                    "Project name is required"
-            );
-        }
-
-        Configuration cfg = project.getConfiguration();
-
-        if (cfg == null) {
-            throw new IllegalArgumentException(
-                    "Project must have a configuration"
-            );
-        }
-
-        if (cfg.getName() == null ||
-                cfg.getName().isBlank()) {
-
-            throw new IllegalArgumentException(
-                    "Configuration name is required"
-            );
-        }
-
-        if (cfg.getLanguage() == null ||
-                cfg.getLanguage().isBlank()) {
-
-            throw new IllegalArgumentException(
-                    "Configuration language is required"
-            );
-        }
-
-        if (cfg.getFileExtension() == null ||
-                cfg.getFileExtension().isBlank()) {
-
-            throw new IllegalArgumentException(
-                    "Configuration file extension is required"
-            );
-        }
-
-        if (cfg.getRunCommand() == null ||
-                cfg.getRunCommand().isBlank()) {
-
-            throw new IllegalArgumentException(
-                    "Configuration run command is required"
-            );
-        }
-
-        if (cfg.getComparisonStrategy() == null) {
-            throw new IllegalArgumentException(
-                    "Configuration must have a comparison strategy"
-            );
-        }
-
-        if (project.getSubmissionsDirectory() == null ||
-                project.getSubmissionsDirectory().isBlank()) {
-
-            throw new IllegalArgumentException(
-                    "Submissions directory is required"
-            );
-        }
-
-        if (project.getExpectedOutput() == null ||
-                project.getExpectedOutput().isBlank()) {
-
-            throw new IllegalArgumentException(
-                    "Expected output is required"
-            );
-        }
-    }
 
     private void ensureDatabaseReady() {
         try {
