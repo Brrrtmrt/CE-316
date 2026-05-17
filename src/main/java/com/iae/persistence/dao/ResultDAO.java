@@ -89,14 +89,11 @@ public class ResultDAO extends BaseDAO {
     /**
      * Inserts or replaces the evaluation result for a student in a project.
      *
-     * FIXED: Explicitly deletes the existing row for the given (project_id, student_id)
-     * pair right before injecting the new one. This ensures absolute compatibility
-     * with the shared schema structure.
-     *
      * @param projectId the project's database id
      * @param result    the evaluation result to persist
+     * @throws SQLException if the database operation fails
      */
-    public void save(String projectId, EvaluationResult result) {
+    public void save(String projectId, EvaluationResult result) throws SQLException {
         String deleteSql = "DELETE FROM evaluation_results WHERE project_id = ? AND student_id = ?";
         String insertSql = """
                 INSERT INTO evaluation_results
@@ -108,14 +105,12 @@ public class ResultDAO extends BaseDAO {
 
         try (Connection conn = DatabaseManager.getConnection()) {
 
-            // 1. Clean up stale historical results for this specific student first
             try (PreparedStatement delStmt = conn.prepareStatement(deleteSql)) {
                 delStmt.setInt(1, Integer.parseInt(projectId));
                 delStmt.setString(2, result.getStudentId());
                 delStmt.executeUpdate();
             }
 
-            // 2. Insert the fresh payload safely
             try (PreparedStatement insStmt = conn.prepareStatement(insertSql)) {
                 insStmt.setInt(1,    Integer.parseInt(projectId));
                 insStmt.setString(2, result.getStudentId());
@@ -125,16 +120,11 @@ public class ResultDAO extends BaseDAO {
                 insStmt.setInt(6,    result.isOutputMatch()     ? 1 : 0);
                 insStmt.setString(7, result.getErrorLog());
 
-                // Safe Enum Name check
                 String statusStr = (result.getStatus() != null) ? result.getStatus().name() : "COMPLETED";
                 insStmt.setString(8, statusStr);
 
                 insStmt.executeUpdate();
             }
-
-        } catch (SQLException e) {
-            System.err.println("ResultDAO.save failed for student "
-                    + result.getStudentId() + ": " + e.getMessage());
         }
     }
 
