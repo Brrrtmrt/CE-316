@@ -87,7 +87,7 @@ class EvaluationServiceIntegrationTest {
         assertEquals(3, results.size());
         assertResultStatus(results, "student_java_pass", Status.PASS);
         assertResultStatus(results, "student_java_fail", Status.FAIL);
-        assertResultStatus(results, "student_java_error", Status.FAIL);
+        assertResultStatus(results, "student_java_error", Status.ERROR);
     }
 
     @Test
@@ -118,8 +118,7 @@ class EvaluationServiceIntegrationTest {
         assertEquals(3, results.size());
         assertResultStatus(results, "student_py_pass", Status.PASS);
         assertResultStatus(results, "student_py_fail", Status.FAIL);
-        // Runtime execution failures (like Syntax Errors in interpreted languages) cause non-zero exit codes.
-        assertResultStatus(results, "student_py_error", Status.FAIL);
+        assertResultStatus(results, "student_py_error", Status.ERROR);
     }
 
     @Test
@@ -154,7 +153,7 @@ class EvaluationServiceIntegrationTest {
         assertEquals(3, results.size());
         assertResultStatus(results, "student_c_pass", Status.PASS);
         assertResultStatus(results, "student_c_fail", Status.FAIL);
-        assertResultStatus(results, "student_c_error", Status.FAIL);
+        assertResultStatus(results, "student_c_error", Status.ERROR);
     }
 
     // --- Utility Methods ---
@@ -180,7 +179,9 @@ class EvaluationServiceIntegrationTest {
 
     private void clearDirectory(Path path) throws IOException {
         if (Files.exists(path)) {
-            Files.walk(path).sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
+            try (java.util.stream.Stream<Path> stream = Files.walk(path)) {
+                stream.sorted(Comparator.reverseOrder()).map(Path::toFile).forEach(File::delete);
+            }
         }
     }
 
