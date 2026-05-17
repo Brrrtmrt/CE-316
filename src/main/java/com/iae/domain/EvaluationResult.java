@@ -8,6 +8,7 @@ public class EvaluationResult {
     private boolean runSuccess;
     private boolean outputMatch;
     private String errorLog;
+    private String programOutput;
 
     public EvaluationResult(String studentId) {
         this.studentId = studentId;
@@ -61,6 +62,14 @@ public class EvaluationResult {
 
     public String getErrorLog() {
         return errorLog;
+    }
+
+    public void setProgramOutput(String programOutput) {
+        this.programOutput = programOutput;
+    }
+
+    public String getProgramOutput() {
+        return programOutput;
     }
 
     /**

@@ -148,37 +148,38 @@ public class EvaluationFacade {
         String studentId = extractStudentId(zipFile);
         StudentSubmission submission = new StudentSubmission(studentId, zipFile);
 
-        EvaluationResult result = new EvaluationResult(studentId);
-
+        EvaluationResult result = submission.getEvaluationResult(); // Link directly to the submission's built-in result
 
         UnzipStep unzipStep = new UnzipStep(config);
         StepResult unzipResult = unzipStep.execute(submission);
         result.setUnzipSuccess(unzipResult.isSuccess());
 
         if (!unzipResult.isSuccess()) {
-            result.setErrorLog(errorMessage(unzipResult));
+            result.setErrorLog(unzipResult.getErrorDetails());
+            submission.setSubmissionStatus(result.getStatus());
             return result;
         }
 
-        boolean needsCompile = config.getCompileCommand() != null && !config.getCompileCommand().isBlank();
-        if (needsCompile) {
-            CompileStep compileStep = new CompileStep(commandExecutor, config);
-            StepResult compileResult = compileStep.execute(submission);
-            result.setCompileSuccess(compileResult.isSuccess());
-            if (!compileResult.isSuccess()) {
-                result.setErrorLog(errorMessage(compileResult));
-                return result;
-            }
-        } else {
-            result.setCompileSuccess(true);
+        CompileStep compileStep = new CompileStep(commandExecutor, config);
+        StepResult compileResult = compileStep.execute(submission);
+        result.setCompileSuccess(compileResult.isSuccess());
+
+        if (!compileResult.isSuccess()) {
+            result.setErrorLog(compileResult.getErrorDetails());
+            submission.setSubmissionStatus(result.getStatus());
+            return result;
         }
 
         RunStep runStep = new RunStep(commandExecutor, config, project.getProgramArguments());
         StepResult runResult = runStep.execute(submission);
         result.setRunSuccess(runResult.isSuccess());
 
+        // Capture the output generated during the run step
+        result.setProgramOutput(submission.getProgramOutput());
+
         if (!runResult.isSuccess()) {
-            result.setErrorLog(errorMessage(runResult));
+            result.setErrorLog(runResult.getErrorDetails());
+            submission.setSubmissionStatus(result.getStatus());
             return result;
         }
 
@@ -189,6 +190,8 @@ public class EvaluationFacade {
         if (!compareResult.isSuccess()) {
             result.setErrorLog("Output mismatch");
         }
+
+        submission.setSubmissionStatus(result.getStatus()); // Synchronize the overall status
 
         return result;
     }
@@ -215,10 +218,6 @@ public class EvaluationFacade {
      * @return the comparison strategy to use
      * @throws IllegalStateException if ComparisonStrategy is null
      */
-    private String errorMessage(StepResult r) {
-        return r.getErrorDetails() != null ? r.getErrorDetails() : r.getMessage();
-    }
-
     private ComparisonStrategy createComparisonStrategy(Configuration config) {
         ComparisonStrategy strat = config.getComparisonStrategy();
         if (strat == null) {
