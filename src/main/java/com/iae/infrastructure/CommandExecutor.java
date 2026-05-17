@@ -45,6 +45,8 @@ public class CommandExecutor {
     private static final String os = System.getProperty("os.name").toLowerCase();
     private static final String separator = System.lineSeparator();
     private static final long DEFAULT_TIMEOUT_SECONDS = 30; // TODO: DB config
+    
+    public record ExecutionOutput(int exitCode, String output) {}
 
 
     /**
@@ -100,7 +102,7 @@ public class CommandExecutor {
      * @throws IOException          if command execution fails
      * @throws InterruptedException if execution is interrupted
      */
-    public String executeAndCapture(String command, File workingDirectory) throws IOException, InterruptedException {
+    public ExecutionOutput executeAndCapture(String command, File workingDirectory) throws IOException, InterruptedException {
 
         ProcessBuilder pb = createProcessBuilder(command, workingDirectory).redirectErrorStream(true); // Merge stderr into stdout
 
@@ -122,7 +124,7 @@ public class CommandExecutor {
             throw new IOException("Command timed out after " + DEFAULT_TIMEOUT_SECONDS + " seconds: " + command);
         }
 
-        return output.toString();
+        return new ExecutionOutput(process.exitValue(), output.toString());
     }
 
     /**
