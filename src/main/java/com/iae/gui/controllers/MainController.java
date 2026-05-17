@@ -6,6 +6,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
  import javafx.scene.control.Button;
+import javafx.scene.control.Alert;
 import javafx.scene.layout.StackPane;
 
 public class MainController {
@@ -42,9 +43,16 @@ public class MainController {
             
             contentArea.getChildren().clear();
             contentArea.getChildren().add(screen); 
-        } catch (IOException e) {
+        } catch (Exception e) {
             System.out.println("An error occurred while loading the screen." + fxmlPath);
             e.printStackTrace();
+            
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Navigation Error");
+            alert.setHeaderText("Could not load screen: " + fxmlPath);
+            alert.setContentText("Error: " + e.getMessage() + 
+                    (e.getCause() != null ? "\nCause: " + e.getCause().getMessage() : ""));
+            alert.showAndWait();
         }
     }
     
