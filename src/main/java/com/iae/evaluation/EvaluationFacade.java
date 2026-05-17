@@ -155,7 +155,7 @@ public class EvaluationFacade {
         result.setUnzipSuccess(unzipResult.isSuccess());
 
         if (!unzipResult.isSuccess()) {
-            result.setErrorLog(unzipResult.getErrorDetails());
+            result.setErrorLog(unzipResult.getErrorDetails() != null ? unzipResult.getErrorDetails() : unzipResult.getMessage());
             submission.setSubmissionStatus(result.getStatus());
             return result;
         }
@@ -165,7 +165,7 @@ public class EvaluationFacade {
         result.setCompileSuccess(compileResult.isSuccess());
 
         if (!compileResult.isSuccess()) {
-            result.setErrorLog(compileResult.getErrorDetails());
+            result.setErrorLog(compileResult.getErrorDetails() != null ? compileResult.getErrorDetails() : compileResult.getMessage());
             submission.setSubmissionStatus(result.getStatus());
             return result;
         }
@@ -178,7 +178,7 @@ public class EvaluationFacade {
         result.setProgramOutput(submission.getProgramOutput());
 
         if (!runResult.isSuccess()) {
-            result.setErrorLog(runResult.getErrorDetails());
+            result.setErrorLog(runResult.getErrorDetails() != null ? runResult.getErrorDetails() : runResult.getMessage());
             submission.setSubmissionStatus(result.getStatus());
             return result;
         }

@@ -46,7 +46,8 @@ public class CompileStep extends AbstractEvaluationStep {
 
         String compileCommand = configuration.getCompileCommand()
                 .replace("{src}", submission.getSourceFile().getAbsolutePath())
-                .replace("{out}", submission.getExecutableFile().getAbsolutePath());
+                .replace("{out}", submission.getExecutableFile().getAbsolutePath())
+                .replace("{dir}", submission.getExtractedDir().getAbsolutePath());
 
         logger.info("Compiling for student " + submission.getStudentId() + ": " + compileCommand);
 
