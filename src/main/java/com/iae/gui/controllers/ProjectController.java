@@ -118,20 +118,43 @@ public class ProjectController {
             lblStatus.setTextFill(Color.BLUE);
             lblStatus.setVisible(true);
 
-            EvaluationService evalService = new EvaluationService();
-            List<EvaluationResult> results = evalService.evaluateProject(newProject);
+            javafx.concurrent.Task<List<EvaluationResult>> evalTask = new javafx.concurrent.Task<>() {
+                @Override
+                protected List<EvaluationResult> call() throws Exception {
+                    EvaluationService evalService = new EvaluationService();
+                    return evalService.evaluateProject(newProject);
+                }
+            };
 
-            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Results.fxml"));
-            Parent root = loader.load();
-            
-            ResultsController resultsController = loader.getController();
-            resultsController.loadResults(results);
-            
-            StackPane contentArea = (StackPane) btnCreateProject.getScene().getRoot().lookup("#contentArea");
-            if (contentArea != null) {
-                contentArea.getChildren().clear();
-                contentArea.getChildren().add(root);
-            }
+            evalTask.setOnSucceeded(e -> {
+                try {
+                    List<EvaluationResult> results = evalTask.getValue();
+                    FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Results.fxml"));
+                    Parent root = loader.load();
+                    
+                    ResultsController resultsController = loader.getController();
+                    resultsController.loadResults(results);
+                    
+                    StackPane contentArea = (StackPane) btnCreateProject.getScene().getRoot().lookup("#contentArea");
+                    if (contentArea != null) {
+                        contentArea.getChildren().clear();
+                        contentArea.getChildren().add(root);
+                    }
+                } catch (Exception ex) {
+                    lblStatus.setText("Error loading results screen: " + ex.getMessage());
+                    lblStatus.setTextFill(Color.RED);
+                }
+            });
+
+            evalTask.setOnFailed(e -> {
+                Throwable ex = evalTask.getException();
+                lblStatus.setText("Error: " + ex.getMessage());
+                lblStatus.setTextFill(Color.RED);
+            });
+
+            Thread thread = new Thread(evalTask);
+            thread.setDaemon(true);
+            thread.start();
 
         } catch (Exception e) {
             lblStatus.setText("Error: " + e.getMessage());
