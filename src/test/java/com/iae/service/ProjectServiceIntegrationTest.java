@@ -43,19 +43,19 @@ class ProjectServiceIntegrationTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        // 1. Create isolated clean database file on disk
+
         tempDbFile = File.createTempFile("iae_integration_test_", ".db");
         tempDbFile.deleteOnExit();
 
         String testDbUrl = "jdbc:sqlite:" + tempDbFile.getAbsolutePath().replace("\\", "/");
 
-        // 2. Point DatabaseManager to the temporary file
+
         DatabaseManager.setDbUrl(testDbUrl);
 
-        // 3. Create tables inside the fresh database file
+
         DatabaseManager.initializeDatabase();
 
-        // 4. NOW it is safe to instantiate your unchanged DAOs
+
         this.projectDAO     = new ProjectDAO();
         this.resultDAO      = new ResultDAO();
         this.projectService = new ProjectService(projectDAO);
