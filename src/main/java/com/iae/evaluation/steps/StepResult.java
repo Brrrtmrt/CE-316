@@ -29,10 +29,6 @@ public class StepResult {
         return success;
     }
     
-    public boolean getSuccess() {
-        return success;
-    }
-    
     public String getStepName() {
         return stepName;
     }

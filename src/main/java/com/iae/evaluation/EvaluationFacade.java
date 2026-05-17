@@ -156,6 +156,7 @@ public class EvaluationFacade {
 
         if (!unzipResult.isSuccess()) {
             result.setErrorLog(unzipResult.getErrorDetails());
+            submission.setSubmissionStatus(result.getStatus());
             return result;
         }
 
@@ -165,6 +166,7 @@ public class EvaluationFacade {
 
         if (!compileResult.isSuccess()) {
             result.setErrorLog(compileResult.getErrorDetails());
+            submission.setSubmissionStatus(result.getStatus());
             return result;
         }
 
@@ -177,6 +179,7 @@ public class EvaluationFacade {
 
         if (!runResult.isSuccess()) {
             result.setErrorLog(runResult.getErrorDetails());
+            submission.setSubmissionStatus(result.getStatus());
             return result;
         }
 

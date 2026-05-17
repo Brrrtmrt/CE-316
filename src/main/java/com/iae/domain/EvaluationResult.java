@@ -32,19 +32,11 @@ public class EvaluationResult {
         return unzipSuccess;
     }
 
-    public boolean getUnzipSuccess() {
-        return unzipSuccess;
-    }
-
     public void setCompileSuccess(boolean compileSuccess) {
         this.compileSuccess = compileSuccess;
     }
 
     public boolean isCompileSuccess() {
-        return compileSuccess;
-    }
-
-    public boolean getCompileSuccess() {
         return compileSuccess;
     }
 
@@ -56,19 +48,11 @@ public class EvaluationResult {
         return runSuccess;
     }
 
-    public boolean getRunSuccess() {
-        return runSuccess;
-    }
-
     public void setOutputMatch(boolean outputMatch) {
         this.outputMatch = outputMatch;
     }
 
     public boolean isOutputMatch() {
-        return outputMatch;
-    }
-
-    public boolean getOutputMatch() {
         return outputMatch;
     }
 

@@ -74,27 +74,4 @@ public class StudentSubmission {
         this.evaluationResult = evaluationResult;
     }
 
-    public EvaluationResult getResult() {
-        return evaluationResult;
-    }
-
-    public boolean getUnzipSuccess() {
-        return evaluationResult != null && evaluationResult.isUnzipSuccess();
-    }
-
-    public boolean getCompileSuccess() {
-        return evaluationResult != null && evaluationResult.isCompileSuccess();
-    }
-
-    public boolean getRunSuccess() {
-        return evaluationResult != null && evaluationResult.isRunSuccess();
-    }
-
-    public boolean getOutputMatch() {
-        return evaluationResult != null && evaluationResult.isOutputMatch();
-    }
-
-    public String getErrorLog() {
-        return evaluationResult != null ? evaluationResult.getErrorLog() : null;
-    }
 }
