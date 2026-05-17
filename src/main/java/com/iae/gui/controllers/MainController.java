@@ -5,7 +5,7 @@ import java.io.IOException;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
-import javafx.scene.control.Button;
+ import javafx.scene.control.Button;
 import javafx.scene.layout.StackPane;
 
 public class MainController {
@@ -15,6 +15,8 @@ public class MainController {
     @FXML private Button btnProjectResults;
     
     @FXML private StackPane contentArea;
+
+    private ResultsController resultsController;
 
     @FXML
     public void initialize() {
@@ -28,12 +30,25 @@ public class MainController {
 
     private void loadScreen(String fxmlPath) {
         try {
-            Parent screen = FXMLLoader.load(getClass().getResource(fxmlPath));
+            FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
+            Parent screen = loader.load();
+            
+            if (fxmlPath.contains("Results.fxml")) {
+                resultsController = loader.getController();
+            } else if (fxmlPath.contains("Project.fxml")) {
+                ProjectController projectController = loader.getController();
+                projectController.setMainController(this);
+            }
+            
             contentArea.getChildren().clear();
             contentArea.getChildren().add(screen); 
         } catch (IOException e) {
             System.out.println("An error occurred while loading the screen." + fxmlPath);
             e.printStackTrace();
         }
+    }
+    
+    public ResultsController getResultsController() {
+        return resultsController;
     }
 }
