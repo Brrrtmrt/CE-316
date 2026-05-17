@@ -41,7 +41,8 @@ public class RunStep extends AbstractEvaluationStep {
         String args = String.join(" ", programArguments);
         String runCommand = configuration.getRunCommand()
                 .replace("{out}", submission.getExecutableFile().getAbsolutePath())
-                .replace("{args}", args);
+                .replace("{args}", args)
+                .replace("{dir}", submission.getExtractedDir().getAbsolutePath());
 
         // Trim any trailing whitespace left by an empty {args} substitution.
         runCommand = runCommand.trim();
