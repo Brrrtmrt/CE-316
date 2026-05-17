@@ -217,7 +217,7 @@ public class ConfigurationController {
                 finalDesc = "Compiler Path: " + compilerPath;
             }
             
-            String finalLang = (extension != null) ? extension : "";
+            String finalLang = deriveLanguageFromExtension(extension);
 
             configService.createConfiguration(
                     name, 
@@ -240,5 +240,22 @@ public class ConfigurationController {
             lblStatus.setTextFill(Color.RED);
             lblStatus.setVisible(true);
         }
+    }
+
+    private String deriveLanguageFromExtension(String extension) {
+        if (extension == null || extension.isBlank()) return "";
+        String ext = extension.toLowerCase().replace(".", "");
+        return switch (ext) {
+            case "java" -> "Java";
+            case "py" -> "Python";
+            case "c" -> "C";
+            case "cpp", "cc", "cxx" -> "C++";
+            case "js" -> "JavaScript";
+            case "ts" -> "TypeScript";
+            case "cs" -> "C#";
+            case "go" -> "Go";
+            case "rs" -> "Rust";
+            default -> extension;
+        };
     }
 }

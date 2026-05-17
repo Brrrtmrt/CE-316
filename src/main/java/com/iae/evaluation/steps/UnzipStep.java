@@ -53,11 +53,17 @@ public class UnzipStep extends AbstractEvaluationStep {
         submission.setSourceFile(sourceFile);
         logger.info("Found source file: " + sourceFile.getAbsolutePath());
 
-        String execName = System.getProperty("os.name").toLowerCase().contains("win") ? "main.exe" : "main";
+        String execName = deriveExecutableName(sourceFile);
         submission.setExecutableFile(new File(submission.getExtractedDir(), execName));
 
         return StepResult.success(getStepName(),
                 "Extracted and located source for student: " + submission.getStudentId());
+    }
+
+    private String deriveExecutableName(File sourceFile) {
+        String baseName = sourceFile.getName().replaceFirst("\\.[^.]+$", "");
+        boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
+        return isWindows ? baseName + ".exe" : baseName;
     }
 
     @Override
