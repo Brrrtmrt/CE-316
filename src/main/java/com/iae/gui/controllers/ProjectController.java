@@ -4,16 +4,21 @@ import java.io.File;
 import java.util.List;
 
 import com.iae.domain.Configuration;
+import com.iae.domain.EvaluationResult;
 import com.iae.domain.Project;
 import com.iae.service.ConfigurationManager;
+import com.iae.service.EvaluationService;
 import com.iae.service.ProjectService;
 
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
@@ -109,9 +114,24 @@ public class ProjectController {
             newProject.setName(txtProjectName.getText());
             projectService.addProject(newProject);
 
-            lblStatus.setText("Project created successfully!");
-            lblStatus.setTextFill(Color.GREEN);
+            lblStatus.setText("Running Evaluation... Please wait.");
+            lblStatus.setTextFill(Color.BLUE);
             lblStatus.setVisible(true);
+
+            EvaluationService evalService = new EvaluationService();
+            List<EvaluationResult> results = evalService.evaluateProject(newProject);
+
+            FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Results.fxml"));
+            Parent root = loader.load();
+            
+            ResultsController resultsController = loader.getController();
+            resultsController.loadResults(results);
+            
+            StackPane contentArea = (StackPane) btnCreateProject.getScene().getRoot().lookup("#contentArea");
+            if (contentArea != null) {
+                contentArea.getChildren().clear();
+                contentArea.getChildren().add(root);
+            }
 
         } catch (Exception e) {
             lblStatus.setText("Error: " + e.getMessage());
