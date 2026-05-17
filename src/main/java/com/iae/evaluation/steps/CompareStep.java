@@ -25,12 +25,8 @@ public class CompareStep extends AbstractEvaluationStep {
     @Override
     protected StepResult doExecute(StudentSubmission submission) throws Exception {
         String actualOutput = submission.getProgramOutput();
-        
 
-        String safeActual = (actualOutput != null ? actualOutput : "").trim().replace("\r\n", "\n");
-        String safeExpected = (this.expectedOutput != null ? this.expectedOutput : "").trim().replace("\r\n", "\n");
-
-        boolean matches = comparisonStrategy.compare(safeActual, safeExpected);
+        boolean matches = comparisonStrategy.compare(actualOutput, expectedOutput);
 
         if (matches) {
             return StepResult.success(getStepName(),

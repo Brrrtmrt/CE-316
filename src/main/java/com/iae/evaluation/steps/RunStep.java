@@ -1,10 +1,10 @@
 package com.iae.evaluation.steps;
 
-import java.util.logging.Logger;
-
 import com.iae.domain.Configuration;
 import com.iae.domain.StudentSubmission;
 import com.iae.infrastructure.CommandExecutor;
+
+import java.util.logging.Logger;
 
 public class RunStep extends AbstractEvaluationStep {
 
@@ -28,13 +28,9 @@ public class RunStep extends AbstractEvaluationStep {
             throw new IllegalStateException("Executable file path not set on submission");
         }
 
-        // Sadece çalıştırılacak komutta {out} değişkeni kullanılıyorsa (ör. C/C++ için) .exe dosyasının varlığını kontrol et.
-        // Java gibi diller (.class üreten) {out} kullanmadığı için bu kontrolü atlamalıdır.
-        if (configuration.getRunCommand() != null && configuration.getRunCommand().contains("{out}")) {
-            if (!submission.getExecutableFile().exists()) {
-                throw new IllegalStateException("Executable does not exist — compilation may have failed: "
-                        + submission.getExecutableFile());
-            }
+        if (!submission.getExecutableFile().exists()) {
+            throw new IllegalStateException("Executable does not exist — compilation may have failed: "
+                    + submission.getExecutableFile());
         }
     }
 
