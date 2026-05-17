@@ -1,6 +1,6 @@
 package com.iae.gui.controllers;
 
-import com.iae.domain.StudentSubmission;
+import com.iae.domain.EvaluationResult;
 import com.iae.domain.Status;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
@@ -15,24 +15,24 @@ import java.util.List;
 public class ResultsController {
 
     @FXML
-    private TableView<StudentSubmission> resultsTable;
+    private TableView<EvaluationResult> resultsTable;
 
     @FXML
-    private TableColumn<StudentSubmission, String> studentIdCol;
+    private TableColumn<EvaluationResult, String> studentIdCol;
 
     @FXML
-    private TableColumn<StudentSubmission, String> statusCol;
+    private TableColumn<EvaluationResult, String> statusCol;
 
     @FXML
-    private TableColumn<StudentSubmission, String> matchPercentageCol;
+    private TableColumn<EvaluationResult, String> matchPercentageCol;
 
     @FXML
-    private TableColumn<StudentSubmission, Void> actionCol;
+    private TableColumn<EvaluationResult, Void> actionCol;
 
     @FXML
     private TextArea errorDisplayArea; // Area at bottom/side for detailed errors
 
-    private final ObservableList<StudentSubmission> resultsList = FXCollections.observableArrayList();
+    private final ObservableList<EvaluationResult> resultsList = FXCollections.observableArrayList();
 
     @FXML
     public void initialize() {
@@ -44,12 +44,12 @@ public class ResultsController {
         });
 
         statusCol.setCellValueFactory(cellData -> {
-            Status status = cellData.getValue().getSubmissionStatus();
+            Status status = cellData.getValue().getStatus();
             return new SimpleStringProperty(status != null ? status.name() : "N/A");
         });
 
         matchPercentageCol.setCellValueFactory(cellData -> {
-            Status status = cellData.getValue().getSubmissionStatus();
+            Status status = cellData.getValue().getStatus();
             String match = (status == Status.PASS) ? "100.0%" : "0.0%";
             return new SimpleStringProperty(match);
         });
@@ -68,12 +68,12 @@ public class ResultsController {
     }
 
     private void setupDetailsButtonColumn() {
-        Callback<TableColumn<StudentSubmission, Void>, TableCell<StudentSubmission, Void>> cellFactory = param -> new TableCell<>() {
+        Callback<TableColumn<EvaluationResult, Void>, TableCell<EvaluationResult, Void>> cellFactory = param -> new TableCell<>() {
             private final Button btn = new Button("Details");
 
             {
                 btn.setOnAction(event -> {
-                    StudentSubmission result = getTableView().getItems().get(getIndex());
+                    EvaluationResult result = getTableView().getItems().get(getIndex());
                     showDetailsDialog(result);
                 });
             }
@@ -94,7 +94,7 @@ public class ResultsController {
     /**
      * Call this method from the EvaluationFacade or MainController when evaluation finishes.
      */
-    public void loadResults(List<StudentSubmission> results) {
+    public void loadResults(List<EvaluationResult> results) {
         resultsList.clear();
         if (results != null) {
             resultsList.addAll(results);
@@ -105,10 +105,10 @@ public class ResultsController {
     /**
      * Updates the lower text area to quickly show compilation or run errors for the selected row.
      */
-    private void updateErrorDisplay(StudentSubmission result) {
-        Status status = result.getSubmissionStatus();
+    private void updateErrorDisplay(EvaluationResult result) {
+        Status status = result.getStatus();
         
-        String logs = result.getProgramOutput() != null ? result.getProgramOutput() : "No output/logs available.";
+        String logs = result.getProgramOutput() != null ? result.getProgramOutput() : (result.getErrorLog() != null ? result.getErrorLog() : "No output/logs available.");
 
         if (status != null && status == Status.ERROR) {
             errorDisplayArea.setText("FAILURE LOGS:\n" + logs);
@@ -125,16 +125,16 @@ public class ResultsController {
     /**
      * Opens a popup alert showing the full detailed view of that specific student's run.
      */
-    private void showDetailsDialog(StudentSubmission result) {
+    private void showDetailsDialog(EvaluationResult result) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle("Detailed Evaluation Results");
         
         String studentId = result.getStudentId() != null ? result.getStudentId() : "Unknown";
         alert.setHeaderText("Execution Details for Student: " + studentId);
         
-        String content = "Status: " + (result.getSubmissionStatus() != null ? result.getSubmissionStatus().name() : "N/A") + "\n\n"
+        String content = "Status: " + (result.getStatus() != null ? result.getStatus().name() : "N/A") + "\n\n"
                        + "System Output/Error Logs:\n"
-                       + (result.getProgramOutput() != null ? result.getProgramOutput() : "None");
+                       + (result.getProgramOutput() != null ? result.getProgramOutput() : (result.getErrorLog() != null ? result.getErrorLog() : "None"));
                        
         TextArea area = new TextArea(content);
         area.setWrapText(true);
