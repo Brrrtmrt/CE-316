@@ -69,6 +69,7 @@
     <HBox alignment="CENTER_RIGHT" prefHeight="50.0" spacing="15.0">
         <children>
             <Label fx:id="lblStatus" text="" textFill="GREEN" visible="false" />
+            <Button fx:id="btnRunEvaluation" mnemonicParsing="false" prefHeight="40.0" prefWidth="150.0" style="-fx-background-color: #28a745; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14px;" text="Run Evaluation" />
             <Button fx:id="btnOpenProject" mnemonicParsing="false" prefHeight="40.0" prefWidth="150.0" style="-fx-background-color: #f0f0f0; -fx-text-fill: #333333; -fx-font-weight: bold; -fx-font-size: 14px; -fx-border-color: #cccccc; -fx-border-radius: 3px;" text="Open Existing" />
             <Button fx:id="btnCreateProject" mnemonicParsing="false" prefHeight="40.0" prefWidth="150.0" style="-fx-background-color: #3266ad; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14px;" text="Create Project" />
             <Button fx:id="btnRunEvaluation" mnemonicParsing="false" prefHeight="40.0" prefWidth="180.0" style="-fx-background-color: #28a745; -fx-text-fill: white; -fx-font-weight: bold; -fx-font-size: 14px;" text="Run &amp; Evaluate" disable="true" />

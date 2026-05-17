@@ -203,7 +203,11 @@ public class EvaluationService {
      */
     private void saveResults(Project project, List<EvaluationResult> results) {
         for (EvaluationResult result : results) {
-            resultDAO.save(project.getId(), result);
+            try {
+                resultDAO.save(project.getId(), result);
+            } catch (Exception e) {
+                System.err.println("Failed to save result for student " + result.getStudentId() + ": " + e.getMessage());
+            }
         }
     }
 

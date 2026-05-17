@@ -1,34 +1,29 @@
 package com.iae.gui.controllers;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.List;
 
 import com.iae.domain.Configuration;
 import com.iae.domain.EvaluationResult;
 import com.iae.domain.Project;
-import com.iae.gui.SharedState;
 import com.iae.service.ConfigurationManager;
 import com.iae.service.EvaluationService;
 import com.iae.service.ProjectService;
 
-import javafx.application.Platform;
+import javafx.concurrent.Task;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
-import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
 
 public class ProjectController {
 
-    @FXML private TextField txtProjectName;
+    @FXML private TextField txtProjectName; 
     @FXML private TextField txtDirectoryPath;
     @FXML private ComboBox<String> cmbConfigurations;
     @FXML private TextField txtArguments;
@@ -43,8 +38,8 @@ public class ProjectController {
     private ConfigurationManager configManager;
     private ProjectService projectService;
     private EvaluationService evaluationService;
-
-    private Project lastCreatedProject;
+    private Project currentProject;
+    private MainController mainController;
 
     @FXML
     public void initialize() {
@@ -57,44 +52,66 @@ public class ProjectController {
         btnCreateProject.setOnAction(event -> createProject());
         btnRunEvaluation.setOnAction(event -> runEvaluation());
 
-        btnOpenProject.setOnAction(event ->
-                System.out.println("Open Project not yet implemented."));
+        btnOpenProject.setOnAction(event -> {
+             System.out.println("Open Project feature will be implemented in Sprint 3!");
+        });
+    }
+
+    public void setMainController(MainController mainController) {
+        this.mainController = mainController;
     }
 
     private void loadConfigurationsIntoComboBox() {
         List<Configuration> configs = configManager.getAllConfigurations();
+        
         if (configs != null && !configs.isEmpty()) {
             for (Configuration config : configs) {
                 cmbConfigurations.getItems().add(config.getName());
             }
+        } else {
+            System.out.println("Warning: No saved configuration found or the JSON file could not be read.");
         }
     }
 
     private void browseDirectory() {
-        DirectoryChooser chooser = new DirectoryChooser();
-        chooser.setTitle("Select Submissions Directory");
+        DirectoryChooser directoryChooser = new DirectoryChooser();
+        directoryChooser.setTitle("Select Submissions Directory");
+        
         Stage stage = (Stage) btnBrowse.getScene().getWindow();
-        File selected = chooser.showDialog(stage);
-        if (selected != null) {
-            txtDirectoryPath.setText(selected.getAbsolutePath());
+        File selectedDirectory = directoryChooser.showDialog(stage);
+
+        if (selectedDirectory != null) {
+            txtDirectoryPath.setText(selectedDirectory.getAbsolutePath());
         }
     }
 
     private void createProject() {
         try {
+            String projectName = txtProjectName.getText();
             String dirPath = txtDirectoryPath.getText();
             String selectedConfigName = cmbConfigurations.getValue();
             String argumentsStr = txtArguments.getText();
             String expectedOutput = txtExpectedOutput.getText();
 
-            if (dirPath == null || dirPath.trim().isEmpty() || selectedConfigName == null) {
-                showStatus("Directory and Configuration are required!", Color.RED);
+            if (projectName == null || projectName.trim().isEmpty()) {
+                lblStatus.setText("Project name is required!");
+                lblStatus.setTextFill(Color.RED);
+                lblStatus.setVisible(true);
                 return;
             }
 
-            File directory = new File(dirPath);
+            if (dirPath == null || dirPath.trim().isEmpty() || selectedConfigName == null) {
+                lblStatus.setText("Directory and Configuration are required!");
+                lblStatus.setTextFill(Color.RED);
+                lblStatus.setVisible(true);
+                return;
+            }
+
+            java.io.File directory = new java.io.File(dirPath);
             if (!directory.exists() || !directory.isDirectory()) {
-                showStatus("Error: Selected path is not a valid directory!", Color.RED);
+                lblStatus.setText("Error: Selected path is not a valid directory!");
+                lblStatus.setTextFill(Color.RED);
+                lblStatus.setVisible(true);
                 return;
             }
 
@@ -103,68 +120,67 @@ public class ProjectController {
                 argsArray = argumentsStr.trim().split("\\s+");
             }
 
-            if (expectedOutput == null) expectedOutput = "";
+            if (expectedOutput == null) {
+                expectedOutput = "";
+            }
 
             Configuration selectedConfig = configManager.getConfiguration(selectedConfigName);
-            Project newProject = new Project(selectedConfig, dirPath, argsArray, expectedOutput);
-            newProject.setName(txtProjectName.getText());
-            projectService.addProject(newProject);
 
-            lastCreatedProject = newProject;
-            btnRunEvaluation.setDisable(false);
+            currentProject = new Project(selectedConfig, dirPath, argsArray, expectedOutput);
+            currentProject.setName(projectName);
+            projectService.createProject(currentProject);
 
-            showStatus("Project created! Click 'Run & Evaluate' to start.", Color.GREEN);
+            lblStatus.setText("Project '" + projectName + "' created successfully!");
+            lblStatus.setTextFill(Color.GREEN);
+            lblStatus.setVisible(true);
 
         } catch (Exception e) {
-            showStatus("Error: " + e.getMessage(), Color.RED);
+            lblStatus.setText("Error: " + e.getMessage());
+            lblStatus.setTextFill(Color.RED);
+            lblStatus.setVisible(true);
         }
     }
 
     private void runEvaluation() {
-        if (lastCreatedProject == null) {
-            showStatus("Create a project first.", Color.RED);
+        if (currentProject == null) {
+            lblStatus.setText("Please create a project first!");
+            lblStatus.setTextFill(Color.RED);
+            lblStatus.setVisible(true);
             return;
         }
 
+        lblStatus.setText("Running evaluation...");
+        lblStatus.setTextFill(Color.BLUE);
+        lblStatus.setVisible(true);
         btnRunEvaluation.setDisable(true);
-        showStatus("Running evaluation, please wait...", Color.BLUE);
 
-        // Run on a background thread so the UI stays responsive
-        Thread evalThread = new Thread(() -> {
-            try {
-                List<EvaluationResult> results = evaluationService.evaluateProject(lastCreatedProject);
-                Platform.runLater(() -> {
-                    SharedState.pendingResults = results;
-                    navigateToResults();
-                });
-            } catch (Exception e) {
-                Platform.runLater(() -> {
-                    btnRunEvaluation.setDisable(false);
-                    showStatus("Evaluation error: " + e.getMessage(), Color.RED);
-                });
+        Task<List<EvaluationResult>> task = new Task<>() {
+            @Override
+            protected List<EvaluationResult> call() throws Exception {
+                return evaluationService.evaluateProject(currentProject);
+            }
+        };
+
+        task.setOnSucceeded(event -> {
+            List<EvaluationResult> results = task.getValue();
+            lblStatus.setText("Evaluation completed! " + results.size() + " submissions processed.");
+            lblStatus.setTextFill(Color.GREEN);
+            btnRunEvaluation.setDisable(false);
+            
+            if (mainController != null) {
+                ResultsController resultsController = mainController.getResultsController();
+                if (resultsController != null) {
+                    resultsController.loadResults(results);
+                }
             }
         });
-        evalThread.setDaemon(true);
-        evalThread.start();
-    }
 
-    private void navigateToResults() {
-        try {
-            Parent screen = FXMLLoader.load(getClass().getResource("/fxml/Results.fxml"));
-            StackPane contentArea = (StackPane) btnBrowse.getScene().lookup("#contentArea");
-            if (contentArea != null) {
-                contentArea.getChildren().clear();
-                contentArea.getChildren().add(screen);
-            }
-        } catch (IOException e) {
-            showStatus("Failed to load Results screen: " + e.getMessage(), Color.RED);
-            e.printStackTrace();
-        }
-    }
+        task.setOnFailed(event -> {
+            lblStatus.setText("Evaluation failed: " + task.getException().getMessage());
+            lblStatus.setTextFill(Color.RED);
+            btnRunEvaluation.setDisable(false);
+        });
 
-    private void showStatus(String message, Color color) {
-        lblStatus.setText(message);
-        lblStatus.setTextFill(color);
-        lblStatus.setVisible(true);
+        new Thread(task).start();
     }
 }
