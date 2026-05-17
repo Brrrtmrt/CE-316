@@ -25,14 +25,13 @@ class ConfigurationIOTest {
     void setUp() throws IOException {
         Files.createDirectories(Paths.get(TEST_CONFIG_DIR));
 
-        configurationIO = new ConfigurationIO() {
-        };
+        configurationIO = new ConfigurationIO(TEST_CONFIG_DIR);
 
     }
 
     @AfterEach
     void tearDown() throws IOException {
-        Path configDir = Paths.get("config");
+        Path configDir = Paths.get(TEST_CONFIG_DIR);
         if (Files.exists(configDir)) {
             try (DirectoryStream<Path> stream = Files.newDirectoryStream(configDir, "Test_*.json")) {
                 for (Path entry : stream) {
@@ -74,7 +73,7 @@ class ConfigurationIOTest {
 
         configurationIO.saveConfiguration(config);
 
-        File savedFile = new File("config", "Test_Java.json");
+        File savedFile = new File(TEST_CONFIG_DIR, "Test_Java.json");
         assertTrue(savedFile.exists(), "JSON file should be created after save");
     }
 
@@ -215,7 +214,9 @@ class ConfigurationIOTest {
     @Order(8)
     @DisplayName("loadAllConfigurations returns non-empty list when config dir has files")
     void testLoadAllConfigurations_returnsNonEmpty() throws IOException {
-        // The real config/ dir already has c-programming.json, java-17.json, python-3.json
+        // Save a dummy config to ensure the test directory is not empty
+        configurationIO.saveConfiguration(buildTestConfiguration("Test_Dummy", "Java"));
+        
         List<Configuration> configs = configurationIO.loadAllConfigurations();
 
         assertFalse(configs.isEmpty(), "Should load at least the existing config files");

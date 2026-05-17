@@ -19,12 +19,13 @@ import java.util.List;
 
 public class ConfigurationIO {
 
-    private static final String CONFIG_DIR = "config";
     private static final String FILE_EXTENSION = ".json";
 
+    private final String configDir;
     private final Gson gson;
 
-    public ConfigurationIO() {
+    public ConfigurationIO(String configDir) {
+        this.configDir = configDir;
         this.gson = new GsonBuilder().setPrettyPrinting().create();
         ensureConfigDirExists();
     }
@@ -34,7 +35,7 @@ public class ConfigurationIO {
         rejectIfNameWouldCollideOnDisk(config.getName());
 
         String fileName = sanitizeFileName(config.getName()) + FILE_EXTENSION;
-        Path filePath = Paths.get(CONFIG_DIR, fileName);
+        Path filePath = Paths.get(configDir, fileName);
 
         String json = gson.toJson(toJsonObject(config));
 
@@ -46,13 +47,13 @@ public class ConfigurationIO {
 
     public List<Configuration> loadAllConfigurations() throws IOException {
         List<Configuration> configurations = new ArrayList<>();
-        Path configDir = Paths.get(CONFIG_DIR);
+        Path dirPath = Paths.get(configDir);
 
-        if (!Files.exists(configDir)) {
+        if (!Files.exists(dirPath)) {
             return configurations;
         }
 
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(configDir, "*" + FILE_EXTENSION)) {
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(dirPath, "*" + FILE_EXTENSION)) {
             for (Path entry : stream) {
                 try {
                     Configuration config = parseFromFile(entry.toString());
@@ -101,7 +102,7 @@ public class ConfigurationIO {
         rejectIfNameWouldCollideOnDisk(name);
 
         String fileName = sanitizeFileName(name) + FILE_EXTENSION;
-        Path filePath = Paths.get(CONFIG_DIR, fileName);
+        Path filePath = Paths.get(configDir, fileName);
         return Files.deleteIfExists(filePath);
     }
 
@@ -199,7 +200,7 @@ public class ConfigurationIO {
 
 
     private void ensureConfigDirExists() {
-        File dir = new File(CONFIG_DIR);
+        File dir = new File(configDir);
         if (!dir.exists()) {
             dir.mkdirs();
         }
