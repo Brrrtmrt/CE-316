@@ -179,7 +179,7 @@
                                     <executable>${java.home}/bin/jpackage</executable>
                                     <arguments>
                                         <argument>--type</argument>
-                                        <argument>msi</argument>
+                                        <argument>exe</argument>
                                         <argument>--input</argument>
                                         <argument>${project.build.directory}/installer-input</argument>
                                         <argument>--main-jar</argument>
