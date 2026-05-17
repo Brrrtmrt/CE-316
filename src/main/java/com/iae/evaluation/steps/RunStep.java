@@ -28,7 +28,8 @@ public class RunStep extends AbstractEvaluationStep {
             throw new IllegalStateException("Executable file path not set on submission");
         }
 
-        if (!submission.getExecutableFile().exists()) {
+        // Only validate executable existence if the run command actually relies on the {out} variable
+        if (configuration.getRunCommand().contains("{out}") && !submission.getExecutableFile().exists()) {
             throw new IllegalStateException("Executable does not exist — compilation may have failed: "
                     + submission.getExecutableFile());
         }
@@ -47,9 +48,15 @@ public class RunStep extends AbstractEvaluationStep {
 
         logger.info("Running for student " + submission.getStudentId() + ": " + runCommand);
 
-        String output = commandExecutor.executeAndCapture(runCommand, submission.getExtractedDir());
+        CommandExecutor.ExecutionOutput execOutput = commandExecutor.executeAndCapture(runCommand, submission.getExtractedDir());
 
-        submission.setProgramOutput(output);
+        submission.setProgramOutput(execOutput.output());
+
+        if (execOutput.exitCode() != 0) {
+            logger.warning("Execution failed for student " + submission.getStudentId() + " with exit code: " + execOutput.exitCode());
+            return StepResult.failure(getStepName(), 
+                    "Execution failed with exit code: " + execOutput.exitCode());
+        }
 
         logger.info("Execution complete for student: " + submission.getStudentId());
 
