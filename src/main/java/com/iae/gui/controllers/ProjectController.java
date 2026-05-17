@@ -12,11 +12,14 @@ import com.iae.service.ProjectService;
 
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
@@ -50,7 +53,9 @@ public class ProjectController {
 
         btnBrowse.setOnAction(event -> browseDirectory());
         btnCreateProject.setOnAction(event -> createProject());
-        btnRunEvaluation.setOnAction(event -> runEvaluation());
+        if (btnRunEvaluation != null) {
+            btnRunEvaluation.setOnAction(event -> runEvaluation());
+        }
 
         btnOpenProject.setOnAction(event -> {
              System.out.println("Open Project feature will be implemented in Sprint 3!");
@@ -134,6 +139,43 @@ public class ProjectController {
             lblStatus.setTextFill(Color.GREEN);
             lblStatus.setVisible(true);
 
+            javafx.concurrent.Task<List<EvaluationResult>> evalTask = new javafx.concurrent.Task<>() {
+                @Override
+                protected List<EvaluationResult> call() throws Exception {
+                    return evaluationService.evaluateProject(currentProject);
+                }
+            };
+
+            evalTask.setOnSucceeded(e -> {
+                try {
+                    List<EvaluationResult> results = evalTask.getValue();
+                    FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Results.fxml"));
+                    Parent root = loader.load();
+                    
+                    ResultsController resultsController = loader.getController();
+                    resultsController.loadResults(results);
+                    
+                    StackPane contentArea = (StackPane) btnCreateProject.getScene().getRoot().lookup("#contentArea");
+                    if (contentArea != null) {
+                        contentArea.getChildren().clear();
+                        contentArea.getChildren().add(root);
+                    }
+                } catch (Exception ex) {
+                    lblStatus.setText("Error loading results screen: " + ex.getMessage());
+                    lblStatus.setTextFill(Color.RED);
+                }
+            });
+
+            evalTask.setOnFailed(e -> {
+                Throwable ex = evalTask.getException();
+                lblStatus.setText("Error: " + ex.getMessage());
+                lblStatus.setTextFill(Color.RED);
+            });
+
+            Thread thread = new Thread(evalTask);
+            thread.setDaemon(true);
+            thread.start();
+
         } catch (Exception e) {
             lblStatus.setText("Error: " + e.getMessage());
             lblStatus.setTextFill(Color.RED);
@@ -152,7 +194,9 @@ public class ProjectController {
         lblStatus.setText("Running evaluation...");
         lblStatus.setTextFill(Color.BLUE);
         lblStatus.setVisible(true);
-        btnRunEvaluation.setDisable(true);
+        if (btnRunEvaluation != null) {
+            btnRunEvaluation.setDisable(true);
+        }
 
         Task<List<EvaluationResult>> task = new Task<>() {
             @Override
@@ -165,20 +209,31 @@ public class ProjectController {
             List<EvaluationResult> results = task.getValue();
             lblStatus.setText("Evaluation completed! " + results.size() + " submissions processed.");
             lblStatus.setTextFill(Color.GREEN);
-            btnRunEvaluation.setDisable(false);
+            if (btnRunEvaluation != null) {
+                btnRunEvaluation.setDisable(false);
+            }
             
-            if (mainController != null) {
-                ResultsController resultsController = mainController.getResultsController();
-                if (resultsController != null) {
-                    resultsController.loadResults(results);
+            try {
+                FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Results.fxml"));
+                Parent root = loader.load();
+                ResultsController resultsController = loader.getController();
+                resultsController.loadResults(results);
+                
+                javafx.scene.layout.StackPane contentArea = (javafx.scene.layout.StackPane) lblStatus.getScene().getRoot().lookup("#contentArea");
+                if (contentArea != null) {
+                    contentArea.getChildren().clear();
+                    contentArea.getChildren().add(root);
                 }
+            } catch (Exception ex) {
+                lblStatus.setText("Error loading results screen: " + ex.getMessage());
+                lblStatus.setTextFill(Color.RED);
             }
         });
 
         task.setOnFailed(event -> {
             lblStatus.setText("Evaluation failed: " + task.getException().getMessage());
             lblStatus.setTextFill(Color.RED);
-            btnRunEvaluation.setDisable(false);
+            if (btnRunEvaluation != null) btnRunEvaluation.setDisable(false);
         });
 
         new Thread(task).start();
