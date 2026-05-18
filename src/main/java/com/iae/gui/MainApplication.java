@@ -35,6 +35,13 @@ public class MainApplication extends Application {
         primaryStage.setScene(scene);
         primaryStage.setMinWidth(800);
         primaryStage.setMinHeight(600);
+
+        // Force completely close the application and all background threads
+        primaryStage.setOnCloseRequest(event -> {
+            javafx.application.Platform.exit();
+            System.exit(0);
+        });
+
         primaryStage.show();
     }
 

@@ -24,38 +24,40 @@ public class RunStep extends AbstractEvaluationStep {
     protected void validate(StudentSubmission submission) throws Exception {
         super.validate(submission);
 
-        boolean usesExecutable = configuration.getRunCommand().contains("{out}");
-        if (usesExecutable) {
-            if (submission.getExecutableFile() == null) {
-                throw new IllegalStateException("Executable file path not set on submission");
-            }
-            if (!submission.getExecutableFile().exists()) {
-                throw new IllegalStateException("Executable does not exist — compilation may have failed: "
-                        + submission.getExecutableFile());
-            }
+        if (submission.getExecutableFile() == null) {
+            throw new IllegalStateException("Executable file path not set on submission");
+        }
+
+        // Only validate executable existence if the run command actually relies on the {out} variable
+        if (configuration.getRunCommand().contains("{out}") && !submission.getExecutableFile().exists()) {
+            throw new IllegalStateException("Executable does not exist — compilation may have failed: "
+                    + submission.getExecutableFile());
         }
     }
 
     @Override
     protected StepResult doExecute(StudentSubmission submission) throws Exception {
+        // Config template uses {out} for the executable path and {args} for program arguments.
         String args = String.join(" ", programArguments);
-        String outPath = submission.getExecutableFile() != null
-                ? submission.getExecutableFile().getAbsolutePath() : "";
-        String srcPath = submission.getSourceFile() != null
-                ? submission.getSourceFile().getAbsolutePath() : "";
         String runCommand = configuration.getRunCommand()
-                .replace("{out}", outPath)
-                .replace("{src}", srcPath)
-                .replace("{args}", args);
+                .replace("{out}", submission.getExecutableFile().getAbsolutePath())
+                .replace("{args}", args)
+                .replace("{dir}", submission.getExtractedDir().getAbsolutePath());
 
         // Trim any trailing whitespace left by an empty {args} substitution.
         runCommand = runCommand.trim();
 
         logger.info("Running for student " + submission.getStudentId() + ": " + runCommand);
 
-        String output = commandExecutor.executeAndCapture(runCommand, submission.getExtractedDir());
+        CommandExecutor.ExecutionOutput execOutput = commandExecutor.executeAndCapture(runCommand, submission.getExtractedDir());
 
-        submission.setProgramOutput(output);
+        submission.setProgramOutput(execOutput.output());
+
+        if (execOutput.exitCode() != 0) {
+            logger.warning("Execution failed for student " + submission.getStudentId() + " with exit code: " + execOutput.exitCode());
+            return StepResult.failure(getStepName(), 
+                    "Execution failed with exit code: " + execOutput.exitCode());
+        }
 
         logger.info("Execution complete for student: " + submission.getStudentId());
 

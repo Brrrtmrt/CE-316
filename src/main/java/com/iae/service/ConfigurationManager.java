@@ -4,6 +4,7 @@ import com.iae.domain.Configuration;
 import com.iae.persistence.ConfigurationIO;
 import com.iae.persistence.ConfigurationPersistenceException;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -44,7 +45,15 @@ public class ConfigurationManager {
 
     private ConfigurationManager() {
         this.configurationCache = new HashMap<>();
-        this.configurationIO   = new ConfigurationIO();
+        
+        String userHome = System.getProperty("user.home");
+        File appDir = new File(userHome, ".iae");
+        File configDir = new File(appDir, "config");
+        if (!configDir.exists()) {
+            configDir.mkdirs();
+        }
+        
+        this.configurationIO   = new ConfigurationIO(configDir.getAbsolutePath());
         loadConfigurations();
     }
 

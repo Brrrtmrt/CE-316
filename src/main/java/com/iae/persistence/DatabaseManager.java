@@ -1,5 +1,6 @@
 package com.iae.persistence;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -10,7 +11,17 @@ import java.sql.Statement;
 
 public class DatabaseManager {
 
-    private static final String DEFAULT_DB_URL = "jdbc:sqlite:iae.db";
+    private static final String DEFAULT_DB_URL;
+
+    static {
+        String userHome = System.getProperty("user.home");
+        File appDir = new File(userHome, ".iae");
+        if (!appDir.exists()) {
+            appDir.mkdirs();
+        }
+        DEFAULT_DB_URL = "jdbc:sqlite:" + new File(appDir, "iae.db").getAbsolutePath().replace("\\", "/");
+    }
+
     private static String dbUrl = DEFAULT_DB_URL;
     private static boolean isInitialized = false;
 

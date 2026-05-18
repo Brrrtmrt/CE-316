@@ -68,3 +68,6 @@ replay_pid*
 
 # AI working notes
 CLAUDE_CONTEXT.md
+
+# Maven Shade Plugin generated files
+dependency-reduced-pom.xml
