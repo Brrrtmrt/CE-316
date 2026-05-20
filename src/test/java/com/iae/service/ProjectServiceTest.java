@@ -3,16 +3,39 @@ package com.iae.service;
 import com.iae.domain.Configuration;
 import com.iae.domain.Project;
 import com.iae.evaluation.strategies.ExactMatchStrategy;
+import com.iae.persistence.DatabaseManager;
+import com.iae.persistence.dao.ProjectDAO;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.io.File;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 class ProjectServiceTest {
 
+    private File tempDbFile;
+    private ProjectService projectService;
+
     @BeforeEach
-    void setUp() {
-        ProjectService.getInstance().clearAllProjects();
+    void setUp() throws Exception {
+        tempDbFile = File.createTempFile("iae_project_service_test_", ".db");
+        tempDbFile.deleteOnExit();
+
+        DatabaseManager.setDbUrl(
+                "jdbc:sqlite:" + tempDbFile.getAbsolutePath().replace("\\", "/"));
+        DatabaseManager.initializeDatabase();
+
+        projectService = new ProjectService(new ProjectDAO());
+    }
+
+    @AfterEach
+    void tearDown() {
+        DatabaseManager.resetDbUrl();
+        if (tempDbFile != null && tempDbFile.exists()) {
+            tempDbFile.delete();
+        }
     }
 
     private Configuration buildConfiguration() {
@@ -29,8 +52,6 @@ class ProjectServiceTest {
 
     @Test
     void addProjectStoresProjectAndAssignsId() {
-        ProjectService projectService = ProjectService.getInstance();
-
         Project project = new Project(buildConfiguration(), ".", new String[0], "Hello World\n");
         project.setName("Sample");
 
@@ -46,8 +67,6 @@ class ProjectServiceTest {
 
     @Test
     void addProjectRejectsDuplicateId() {
-        ProjectService projectService = ProjectService.getInstance();
-
         Project firstProject = new Project(buildConfiguration(), ".", new String[0], "Hello World\n");
         firstProject.setName("First");
         projectService.addProject(firstProject);

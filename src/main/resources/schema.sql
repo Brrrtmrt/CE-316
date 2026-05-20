@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS evaluation_results (
     run_success      INTEGER NOT NULL DEFAULT 0,
     output_match     INTEGER NOT NULL DEFAULT 0,
     error_log        TEXT,
+    program_output   TEXT,
     status           TEXT    NOT NULL,
     FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 );

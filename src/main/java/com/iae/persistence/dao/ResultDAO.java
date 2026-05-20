@@ -61,13 +61,20 @@ public class ResultDAO extends BaseDAO {
 
 
     public void save(String projectId, EvaluationResult result) throws SQLException {
+        if (projectId == null) {
+            throw new IllegalArgumentException("projectId must not be null");
+        }
+        if (result == null) {
+            throw new IllegalArgumentException("result must not be null");
+        }
+
         String deleteSql = "DELETE FROM evaluation_results WHERE project_id = ? AND student_id = ?";
         String insertSql = """
                 INSERT INTO evaluation_results
                     (project_id, student_id,
                      unzip_success, compile_success, run_success, output_match,
-                     error_log, status)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                     error_log, program_output, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         try (Connection conn = DatabaseManager.getConnection()) {
@@ -86,9 +93,8 @@ public class ResultDAO extends BaseDAO {
                 insStmt.setInt(5,    result.isRunSuccess()      ? 1 : 0);
                 insStmt.setInt(6,    result.isOutputMatch()     ? 1 : 0);
                 insStmt.setString(7, result.getErrorLog());
-
-                String statusStr = (result.getStatus() != null) ? result.getStatus().name() : "COMPLETED";
-                insStmt.setString(8, statusStr);
+                insStmt.setString(8, result.getProgramOutput());
+                insStmt.setString(9, result.getStatus().name());
 
                 insStmt.executeUpdate();
             }
@@ -113,11 +119,12 @@ public class ResultDAO extends BaseDAO {
 
     private EvaluationResult mapResult(ResultSet rs) throws SQLException {
         EvaluationResult result = new EvaluationResult(rs.getString("student_id"));
-        result.setUnzipSuccess(rs.getInt("unzip_success")   == 1);
+        result.setUnzipSuccess(rs.getInt("unzip_success")     == 1);
         result.setCompileSuccess(rs.getInt("compile_success") == 1);
-        result.setRunSuccess(rs.getInt("run_success")       == 1);
-        result.setOutputMatch(rs.getInt("output_match")     == 1);
+        result.setRunSuccess(rs.getInt("run_success")         == 1);
+        result.setOutputMatch(rs.getInt("output_match")       == 1);
         result.setErrorLog(rs.getString("error_log"));
+        result.setProgramOutput(rs.getString("program_output"));
         return result;
     }
 }
