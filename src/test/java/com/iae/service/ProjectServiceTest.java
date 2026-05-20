@@ -28,6 +28,7 @@ class ProjectServiceTest {
         DatabaseManager.initializeDatabase();
 
         projectService = new ProjectService(new ProjectDAO());
+        projectService.clearAllProjects();
     }
 
     @AfterEach

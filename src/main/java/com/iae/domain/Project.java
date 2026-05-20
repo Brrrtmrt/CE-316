@@ -1,20 +1,31 @@
 package com.iae.domain;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.Objects;
 
 public class Project {
-    private Configuration configuration;
-    private String submissionsDirectory;
-    private String[] programArguments;
-    private String expectedOutput;
+    private final Configuration configuration;
+    private final String submissionsDirectory;
+    private final String[] programArguments;
+    private final String expectedOutput;
     private String id;
     private String name;
     private LocalDateTime lastRunDate;
 
     public Project(Configuration configuration, String submissionsDirectory, String[] programArguments, String expectedOutput) {
+        if (configuration == null) {
+            throw new IllegalArgumentException("Configuration cannot be null");
+        }
+        if (submissionsDirectory == null) {
+            throw new IllegalArgumentException("Submissions directory cannot be null");
+        }
+        if (expectedOutput == null) {
+            throw new IllegalArgumentException("Expected output cannot be null");
+        }
         this.configuration = configuration;
         this.submissionsDirectory = submissionsDirectory;
-        this.programArguments = programArguments;
+        this.programArguments = programArguments == null ? new String[0] : Arrays.copyOf(programArguments, programArguments.length);
         this.expectedOutput = expectedOutput;
     }
 
@@ -27,7 +38,7 @@ public class Project {
     }
 
     public String[] getProgramArguments() {
-        return programArguments;
+        return Arrays.copyOf(programArguments, programArguments.length);
     }
 
     public String getExpectedOutput() {
@@ -56,5 +67,29 @@ public class Project {
 
     public void setLastRunDate(LocalDateTime lastRunDate) {
         this.lastRunDate = lastRunDate;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Project)) return false;
+        Project project = (Project) o;
+        return Objects.equals(id, project.id)
+                && Objects.equals(name, project.name)
+                && Objects.equals(submissionsDirectory, project.submissionsDirectory)
+                && Objects.equals(expectedOutput, project.expectedOutput)
+                && Arrays.equals(programArguments, project.programArguments);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Objects.hash(id, name, submissionsDirectory, expectedOutput);
+        result = 31 * result + Arrays.hashCode(programArguments);
+        return result;
+    }
+
+    @Override
+    public String toString() {
+        return "Project{id='" + id + "', name='" + name + "', submissionsDirectory='" + submissionsDirectory + "'}";
     }
 }

@@ -10,9 +10,16 @@ import java.util.List;
 
 public class ResultDAO extends BaseDAO {
 
+    private static final String SELECT_COLUMNS =
+            "id, project_id, student_id, unzip_success, compile_success, run_success, "
+            + "output_match, error_log, program_output, status";
 
     public List<EvaluationResult> findByProjectId(String projectId) {
-        String sql = "SELECT * FROM evaluation_results WHERE project_id = ?";
+        if (projectId == null) {
+            throw new IllegalArgumentException("projectId must not be null");
+        }
+        String sql = "SELECT " + SELECT_COLUMNS
+                + " FROM evaluation_results WHERE project_id = ? ORDER BY student_id";
         List<EvaluationResult> results = new ArrayList<>();
 
         try (Connection conn = DatabaseManager.getConnection();
@@ -27,7 +34,7 @@ public class ResultDAO extends BaseDAO {
             }
 
         } catch (SQLException e) {
-            System.err.println("ResultDAO.findByProjectId failed: " + e.getMessage());
+            throw new RuntimeException("ResultDAO.findByProjectId failed for projectId=" + projectId, e);
         }
 
         return results;
@@ -35,10 +42,14 @@ public class ResultDAO extends BaseDAO {
 
 
     public EvaluationResult findByProjectAndStudent(String projectId, String studentId) {
-        String sql = """
-                SELECT * FROM evaluation_results
-                WHERE project_id = ? AND student_id = ?
-                """;
+        if (projectId == null) {
+            throw new IllegalArgumentException("projectId must not be null");
+        }
+        if (studentId == null) {
+            throw new IllegalArgumentException("studentId must not be null");
+        }
+        String sql = "SELECT " + SELECT_COLUMNS
+                + " FROM evaluation_results WHERE project_id = ? AND student_id = ?";
 
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -53,7 +64,8 @@ public class ResultDAO extends BaseDAO {
             }
 
         } catch (SQLException e) {
-            System.err.println("ResultDAO.findByProjectAndStudent failed: " + e.getMessage());
+            throw new RuntimeException("ResultDAO.findByProjectAndStudent failed for projectId=" + projectId
+                    + ", studentId=" + studentId, e);
         }
 
         return null;
@@ -77,32 +89,46 @@ public class ResultDAO extends BaseDAO {
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
+        int projectIdInt = Integer.parseInt(projectId);
+
         try (Connection conn = DatabaseManager.getConnection()) {
+            boolean previousAutoCommit = conn.getAutoCommit();
+            conn.setAutoCommit(false);
+            try {
+                try (PreparedStatement delStmt = conn.prepareStatement(deleteSql)) {
+                    delStmt.setInt(1, projectIdInt);
+                    delStmt.setString(2, result.getStudentId());
+                    delStmt.executeUpdate();
+                }
 
-            try (PreparedStatement delStmt = conn.prepareStatement(deleteSql)) {
-                delStmt.setInt(1, Integer.parseInt(projectId));
-                delStmt.setString(2, result.getStudentId());
-                delStmt.executeUpdate();
-            }
+                try (PreparedStatement insStmt = conn.prepareStatement(insertSql)) {
+                    insStmt.setInt(1,    projectIdInt);
+                    insStmt.setString(2, result.getStudentId());
+                    insStmt.setInt(3,    result.isUnzipSuccess()   ? 1 : 0);
+                    insStmt.setInt(4,    result.isCompileSuccess()  ? 1 : 0);
+                    insStmt.setInt(5,    result.isRunSuccess()      ? 1 : 0);
+                    insStmt.setInt(6,    result.isOutputMatch()     ? 1 : 0);
+                    insStmt.setString(7, result.getErrorLog());
+                    insStmt.setString(8, result.getProgramOutput());
+                    insStmt.setString(9, result.getStatus().name());
 
-            try (PreparedStatement insStmt = conn.prepareStatement(insertSql)) {
-                insStmt.setInt(1,    Integer.parseInt(projectId));
-                insStmt.setString(2, result.getStudentId());
-                insStmt.setInt(3,    result.isUnzipSuccess()   ? 1 : 0);
-                insStmt.setInt(4,    result.isCompileSuccess()  ? 1 : 0);
-                insStmt.setInt(5,    result.isRunSuccess()      ? 1 : 0);
-                insStmt.setInt(6,    result.isOutputMatch()     ? 1 : 0);
-                insStmt.setString(7, result.getErrorLog());
-                insStmt.setString(8, result.getProgramOutput());
-                insStmt.setString(9, result.getStatus().name());
-
-                insStmt.executeUpdate();
+                    insStmt.executeUpdate();
+                }
+                conn.commit();
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(previousAutoCommit);
             }
         }
     }
 
 
     public void deleteByProjectId(String projectId) {
+        if (projectId == null) {
+            throw new IllegalArgumentException("projectId must not be null");
+        }
         String sql = "DELETE FROM evaluation_results WHERE project_id = ?";
 
         try (Connection conn = DatabaseManager.getConnection();
@@ -112,7 +138,7 @@ public class ResultDAO extends BaseDAO {
             stmt.executeUpdate();
 
         } catch (SQLException e) {
-            System.err.println("ResultDAO.deleteByProjectId failed: " + e.getMessage());
+            throw new RuntimeException("ResultDAO.deleteByProjectId failed for projectId=" + projectId, e);
         }
     }
 

@@ -24,5 +24,6 @@ CREATE TABLE IF NOT EXISTS evaluation_results (
     error_log        TEXT,
     program_output   TEXT,
     status           TEXT    NOT NULL,
+    UNIQUE (project_id, student_id),
     FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
 );

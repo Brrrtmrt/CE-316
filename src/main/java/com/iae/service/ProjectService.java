@@ -114,17 +114,16 @@ public class ProjectService {
 
         try {
             if (project.getId() != null && !project.getId().isBlank()) {
-
-                Project existing =
-                        projectDAO.findById(
-                                Integer.parseInt(project.getId())
-                        );
-
+                Project existing;
+                try {
+                    existing = projectDAO.findById(Integer.parseInt(project.getId()));
+                } catch (NumberFormatException nfe) {
+                    throw new IllegalArgumentException(
+                            "Invalid project id (not an integer): " + project.getId(), nfe);
+                }
                 if (existing != null) {
                     throw new IllegalArgumentException(
-                            "Project with ID already exists: "
-                                    + project.getId()
-                    );
+                            "Project with ID already exists: " + project.getId());
                 }
             }
 
@@ -160,18 +159,14 @@ public class ProjectService {
     }
 
     void clearAllProjects() {
-        String sql = "DELETE FROM projects";
-
         try (Connection conn = DatabaseManager.getConnection();
              Statement stmt = conn.createStatement()) {
 
-            stmt.executeUpdate(sql);
+            stmt.executeUpdate("DELETE FROM projects");
+            stmt.executeUpdate("DELETE FROM sqlite_sequence WHERE name='projects'");
 
         } catch (SQLException e) {
-            System.err.println(
-                    "ProjectService.clearAllProjects failed: "
-                            + e.getMessage()
-            );
+            throw new ProjectServiceException("ProjectService.clearAllProjects failed", e);
         }
     }
 
@@ -238,9 +233,9 @@ public class ProjectService {
         }
     }
 
-    public void deleteProject(int id) {
+    public boolean deleteProject(int id) {
         try {
-            projectDAO.delete(id);
+            return projectDAO.delete(id) > 0;
 
         } catch (SQLException e) {
             throw new ProjectServiceException(
@@ -266,7 +261,7 @@ public class ProjectService {
     }
 
     public static class ProjectServiceException
-            extends RuntimeException {
+            extends com.iae.service.ProjectServiceException {
 
         public ProjectServiceException(
                 String message,
