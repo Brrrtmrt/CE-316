@@ -10,7 +10,8 @@ CREATE TABLE IF NOT EXISTS projects (
     description            TEXT,
     submissions_directory  TEXT    NOT NULL,
     program_arguments      TEXT,
-    expected_output        TEXT
+    expected_output        TEXT,
+    last_run_date          TEXT
 );
 
 CREATE TABLE IF NOT EXISTS evaluation_results (

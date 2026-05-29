@@ -14,7 +14,7 @@ public class ResultDAO extends BaseDAO {
             "id, project_id, student_id, unzip_success, compile_success, run_success, "
             + "output_match, error_log, program_output, status";
 
-    public List<EvaluationResult> findByProjectId(String projectId) {
+    public List<EvaluationResult> findByProjectId(String projectId) throws SQLException {
         if (projectId == null) {
             throw new IllegalArgumentException("projectId must not be null");
         }
@@ -32,16 +32,13 @@ public class ResultDAO extends BaseDAO {
                     results.add(mapResult(rs));
                 }
             }
-
-        } catch (SQLException e) {
-            throw new RuntimeException("ResultDAO.findByProjectId failed for projectId=" + projectId, e);
         }
 
         return results;
     }
 
 
-    public EvaluationResult findByProjectAndStudent(String projectId, String studentId) {
+    public EvaluationResult findByProjectAndStudent(String projectId, String studentId) throws SQLException {
         if (projectId == null) {
             throw new IllegalArgumentException("projectId must not be null");
         }
@@ -62,10 +59,6 @@ public class ResultDAO extends BaseDAO {
                     return mapResult(rs);
                 }
             }
-
-        } catch (SQLException e) {
-            throw new RuntimeException("ResultDAO.findByProjectAndStudent failed for projectId=" + projectId
-                    + ", studentId=" + studentId, e);
         }
 
         return null;
@@ -125,7 +118,7 @@ public class ResultDAO extends BaseDAO {
     }
 
 
-    public void deleteByProjectId(String projectId) {
+    public void deleteByProjectId(String projectId) throws SQLException {
         if (projectId == null) {
             throw new IllegalArgumentException("projectId must not be null");
         }
@@ -136,9 +129,6 @@ public class ResultDAO extends BaseDAO {
 
             stmt.setInt(1, Integer.parseInt(projectId));
             stmt.executeUpdate();
-
-        } catch (SQLException e) {
-            throw new RuntimeException("ResultDAO.deleteByProjectId failed for projectId=" + projectId, e);
         }
     }
 

@@ -10,6 +10,7 @@ import com.iae.evaluation.strategies.TrimLinesStrategy;
 import com.iae.persistence.DatabaseManager;
 
 import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,7 +36,7 @@ public class ProjectDAO extends BaseDAO {
     private static final String SELECT_COLUMNS =
             "id, name, config_name, language, file_extension, compile_command, "
             + "run_command, comparison_strategy, description, submissions_directory, "
-            + "program_arguments, expected_output";
+            + "program_arguments, expected_output, last_run_date";
 
     public Project findById(int id) throws SQLException {
         String sql = "SELECT " + SELECT_COLUMNS + " FROM projects WHERE id = ?";
@@ -91,8 +92,8 @@ public class ProjectDAO extends BaseDAO {
                 INSERT INTO projects
                     (name, config_name, language, file_extension,
                      compile_command, run_command, comparison_strategy, description,
-                     submissions_directory, program_arguments, expected_output)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     submissions_directory, program_arguments, expected_output, last_run_date)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         try (Connection conn = DatabaseManager.getConnection();
@@ -110,6 +111,7 @@ public class ProjectDAO extends BaseDAO {
             stmt.setString(9,  project.getSubmissionsDirectory());
             stmt.setString(10, joinArgs(project.getProgramArguments()));
             stmt.setString(11, project.getExpectedOutput());
+            stmt.setString(12, formatLocalDateTime(project.getLastRunDate()));
 
             stmt.executeUpdate();
 
@@ -154,7 +156,8 @@ public class ProjectDAO extends BaseDAO {
                     description           = ?,
                     submissions_directory = ?,
                     program_arguments     = ?,
-                    expected_output       = ?
+                    expected_output       = ?,
+                    last_run_date         = ?
                 WHERE id = ?
                 """;
 
@@ -173,7 +176,8 @@ public class ProjectDAO extends BaseDAO {
             stmt.setString(9,  project.getSubmissionsDirectory());
             stmt.setString(10, joinArgs(project.getProgramArguments()));
             stmt.setString(11, project.getExpectedOutput());
-            stmt.setInt(12,    parseIdOrThrow(project.getId()));
+            stmt.setString(12, formatLocalDateTime(project.getLastRunDate()));
+            stmt.setInt(13,    parseIdOrThrow(project.getId()));
 
             int affected = stmt.executeUpdate();
             if (affected == 0) {
@@ -229,6 +233,7 @@ public class ProjectDAO extends BaseDAO {
 
         project.setId(String.valueOf(rs.getInt("id")));
         project.setName(rs.getString("name"));
+        project.setLastRunDate(parseLocalDateTime(rs.getString("last_run_date")));
         return project;
     }
 
@@ -270,5 +275,14 @@ public class ProjectDAO extends BaseDAO {
     private String joinArgs(String[] args) {
         if (args == null || args.length == 0) return null;
         return String.join(",", args);
+    }
+
+    private String formatLocalDateTime(LocalDateTime dateTime) {
+        return dateTime != null ? dateTime.toString() : null;
+    }
+
+    private LocalDateTime parseLocalDateTime(String value) {
+        if (value == null || value.isBlank()) return null;
+        return LocalDateTime.parse(value);
     }
 }
