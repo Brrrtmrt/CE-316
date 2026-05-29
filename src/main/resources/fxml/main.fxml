@@ -4,8 +4,7 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.geometry.Insets?>
 
-<BorderPane prefHeight="720.0" prefWidth="1080.0" stylesheets="@../css/styles.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.iae.gui.controllers.MainController">   
-   <top>
+<BorderPane prefHeight="720.0" prefWidth="1080.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.iae.gui.controllers.MainController">   <top>
       <MenuBar BorderPane.alignment="CENTER">
         <menus>
           <Menu text="File">

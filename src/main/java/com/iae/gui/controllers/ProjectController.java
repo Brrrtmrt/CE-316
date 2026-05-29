@@ -60,6 +60,7 @@ public class ProjectController {
         btnBrowse.setOnAction(event -> browseDirectory());
         btnCreateProject.setOnAction(event -> createProject());
         if (btnRunEvaluation != null) {
+            btnRunEvaluation.setDisable(true); 
             btnRunEvaluation.setOnAction(event -> runEvaluation());
         }
 

@@ -61,11 +61,18 @@ public class MainController {
     public FXMLLoader loadOrGetScreen(String fxmlPath) {
         if (!screenCache.containsKey(fxmlPath)) {
             try {
-                FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
+                java.net.URL resourceUrl = getClass().getResource(fxmlPath);
+                
+                if (resourceUrl == null) {
+                    System.err.println("Error: FXML file not found at path: " + fxmlPath);
+                    return null; 
+                }
+                
+                FXMLLoader loader = new FXMLLoader(resourceUrl);
                 loader.load(); 
                 screenCache.put(fxmlPath, loader);
             } catch (IOException e) {
-                System.out.println("An error occurred while loading the screen: " + fxmlPath);
+                System.err.println("An error occurred while loading the screen: " + fxmlPath);
                 e.printStackTrace();
                 return null;
             }
@@ -160,15 +167,39 @@ public class MainController {
     }
 
     private void openUserManual() {
+        if (!java.awt.Desktop.isDesktopSupported()) {
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Not Supported");
+            alert.setHeaderText(null);
+            alert.setContentText("Desktop browsing is not supported on this system.");
+            alert.showAndWait();
+            return;
+        }
+
         try {
-            java.net.URL url = getClass().getResource("/help/manual.html");
-            if (url != null) {
-                java.awt.Desktop.getDesktop().browse(url.toURI());
-            } else {
-                System.out.println("Error: manual.html not found!");
+            java.io.InputStream in = getClass().getResourceAsStream("/help/manual.html");
+            if (in == null) {
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Error");
+                alert.setHeaderText(null);
+                alert.setContentText("User manual file not found!");
+                alert.showAndWait();
+                return;
             }
+            
+            java.io.File tempFile = java.io.File.createTempFile("iae_manual_", ".html");
+            tempFile.deleteOnExit();
+            java.nio.file.Files.copy(in, tempFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            
+            java.awt.Desktop.getDesktop().browse(tempFile.toURI());
+            
         } catch (Exception e) {
             e.printStackTrace();
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Error");
+            alert.setHeaderText(null);
+            alert.setContentText("Failed to open user manual: " + e.getMessage());
+            alert.showAndWait();
         }
     }
 }

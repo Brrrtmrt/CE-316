@@ -119,6 +119,9 @@ public class ConfigurationController {
             String finalDesc = "";
 
             if (existing != null) {
+                if ((finalLang == null || finalLang.isEmpty()) && existing.getLanguage() != null) {
+                    finalLang = existing.getLanguage();
+                }
                 String existingDesc = existing.getDescription();
                 if (existingDesc != null) {
                     int idx = existingDesc.indexOf("Compiler Path: ");
