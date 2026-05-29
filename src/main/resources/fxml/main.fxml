@@ -4,26 +4,21 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.geometry.Insets?>
 
-<BorderPane prefHeight="720.0" prefWidth="1080.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.iae.gui.controllers.MainController">
-   
+<BorderPane prefHeight="720.0" prefWidth="1080.0" stylesheets="@../css/styles.css" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.iae.gui.controllers.MainController">   
    <top>
       <MenuBar BorderPane.alignment="CENTER">
         <menus>
           <Menu text="File">
             <items>
-              <MenuItem text="Save" />
-              <MenuItem text="Load" />
-              <SeparatorMenuItem />
-              <MenuItem text="Exit" />
+               <MenuItem fx:id="menuItemExport" text="Save (Export) Configs" />
+               <MenuItem fx:id="menuItemImport" text="Load (Import) Configs" />
             </items>
           </Menu>
           <Menu text="Help">
             <items>
-              <MenuItem text="User Manual" />
+              <MenuItem fx:id="menuItemUserManual" text="User Manual" />
             </items>
           </Menu>
-          <Menu text="DarkMode" />
-          <Menu text="Exit" />
         </menus>
       </MenuBar>
    </top>

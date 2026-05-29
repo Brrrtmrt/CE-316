@@ -1,7 +1,11 @@
 package com.iae.gui.controllers;
 
 import java.io.File;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 import com.iae.domain.Configuration;
 import com.iae.domain.EvaluationResult;
@@ -13,16 +17,17 @@ import com.iae.service.ProjectService;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
+import javafx.scene.control.Alert;
 import javafx.scene.control.Button;
+import javafx.scene.control.ChoiceDialog;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
-import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Stage;
+
 
 public class ProjectController {
 
@@ -31,6 +36,7 @@ public class ProjectController {
     @FXML private ComboBox<String> cmbConfigurations;
     @FXML private TextField txtArguments;
     @FXML private TextArea txtExpectedOutput;
+    
 
     @FXML private Button btnBrowse;
     @FXML private Button btnCreateProject;
@@ -57,9 +63,7 @@ public class ProjectController {
             btnRunEvaluation.setOnAction(event -> runEvaluation());
         }
 
-        btnOpenProject.setOnAction(event -> {
-             System.out.println("Open Project feature will be implemented in Sprint 3!");
-        });
+        btnOpenProject.setOnAction(event -> openExistingProject());
     }
 
     public void setMainController(MainController mainController) {
@@ -133,48 +137,16 @@ public class ProjectController {
 
             currentProject = new Project(selectedConfig, dirPath, argsArray, expectedOutput);
             currentProject.setName(projectName);
+            
             projectService.createProject(currentProject);
 
-            lblStatus.setText("Project '" + projectName + "' created successfully!");
+            lblStatus.setText("Project created! Click 'Run Evaluation' to start.");
             lblStatus.setTextFill(Color.GREEN);
             lblStatus.setVisible(true);
-
-            javafx.concurrent.Task<List<EvaluationResult>> evalTask = new javafx.concurrent.Task<>() {
-                @Override
-                protected List<EvaluationResult> call() throws Exception {
-                    return evaluationService.evaluateProject(currentProject);
-                }
-            };
-
-            evalTask.setOnSucceeded(e -> {
-                try {
-                    List<EvaluationResult> results = evalTask.getValue();
-                    FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Results.fxml"));
-                    Parent root = loader.load();
-                    
-                    ResultsController resultsController = loader.getController();
-                    resultsController.loadResults(results);
-                    
-                    StackPane contentArea = (StackPane) btnCreateProject.getScene().getRoot().lookup("#contentArea");
-                    if (contentArea != null) {
-                        contentArea.getChildren().clear();
-                        contentArea.getChildren().add(root);
-                    }
-                } catch (Exception ex) {
-                    lblStatus.setText("Error loading results screen: " + ex.getMessage());
-                    lblStatus.setTextFill(Color.RED);
-                }
-            });
-
-            evalTask.setOnFailed(e -> {
-                Throwable ex = evalTask.getException();
-                lblStatus.setText("Error: " + ex.getMessage());
-                lblStatus.setTextFill(Color.RED);
-            });
-
-            Thread thread = new Thread(evalTask);
-            thread.setDaemon(true);
-            thread.start();
+            
+            if (btnRunEvaluation != null) {
+                btnRunEvaluation.setDisable(false);
+            }
 
         } catch (Exception e) {
             lblStatus.setText("Error: " + e.getMessage());
@@ -212,23 +184,21 @@ public class ProjectController {
             if (btnRunEvaluation != null) {
                 btnRunEvaluation.setDisable(false);
             }
-            
+    
             try {
-                FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/Results.fxml"));
-                Parent root = loader.load();
-                ResultsController resultsController = loader.getController();
-                resultsController.loadResults(results);
-                
-                javafx.scene.layout.StackPane contentArea = (javafx.scene.layout.StackPane) lblStatus.getScene().getRoot().lookup("#contentArea");
-                if (contentArea != null) {
-                    contentArea.getChildren().clear();
-                    contentArea.getChildren().add(root);
+                if (MainController.getInstance() != null) {
+                FXMLLoader loader = MainController.getInstance().loadOrGetScreen("/fxml/Results.fxml");
+                    if (loader != null) {
+                    ResultsController resultsController = loader.getController();
+                    resultsController.loadResults(results); 
+                    MainController.getInstance().activateScreen("/fxml/Results.fxml"); 
                 }
-            } catch (Exception ex) {
-                lblStatus.setText("Error loading results screen: " + ex.getMessage());
-                lblStatus.setTextFill(Color.RED);
             }
-        });
+        } catch (Exception ex) {
+            lblStatus.setText("Error loading results screen: " + ex.getMessage());
+            lblStatus.setTextFill(Color.RED);
+        }
+    });
 
         task.setOnFailed(event -> {
             lblStatus.setText("Evaluation failed: " + task.getException().getMessage());
@@ -237,5 +207,68 @@ public class ProjectController {
         });
 
         new Thread(task).start();
+    }
+
+    private void openExistingProject() {
+        try {
+            List<Project> projects = projectService.getAllProjects();
+            
+            if (projects == null || projects.isEmpty()) {
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setTitle("Open Project");
+                alert.setHeaderText(null);
+                alert.setContentText("No saved projects found in the database.");
+                alert.showAndWait();
+                return;
+            }
+            
+            Map<String, Project> projectMap = new HashMap<>();
+            for (Project p : projects) {
+                String displayName = p.getName() + " (ID: " + p.getId() + ")";
+                projectMap.put(displayName, p);
+            }
+            
+            List<String> displayNames = projectMap.keySet().stream().sorted().collect(Collectors.toList());
+            
+            ChoiceDialog<String> dialog = new ChoiceDialog<>(displayNames.get(0), displayNames);
+            dialog.setTitle("Open Existing Project");
+            dialog.setHeaderText("Select a project to load:");
+            dialog.setContentText("Project:");
+            
+            Optional<String> result = dialog.showAndWait();
+            
+            if (result.isPresent()) {
+                Project selectedProject = projectMap.get(result.get());
+                
+                txtProjectName.setText(selectedProject.getName());
+                txtDirectoryPath.setText(selectedProject.getSubmissionsDirectory());
+                
+                if (selectedProject.getConfiguration() != null) {
+                    cmbConfigurations.setValue(selectedProject.getConfiguration().getName());
+                }
+                
+                if (selectedProject.getProgramArguments() != null && selectedProject.getProgramArguments().length > 0) {
+                    txtArguments.setText(String.join(" ", selectedProject.getProgramArguments()));
+                } else {
+                    txtArguments.setText("");
+                }
+                
+                txtExpectedOutput.setText(selectedProject.getExpectedOutput() != null ? selectedProject.getExpectedOutput() : "");
+                
+                currentProject = selectedProject;
+                
+                lblStatus.setText("Project '" + selectedProject.getName() + "' loaded successfully!");
+                lblStatus.setTextFill(Color.GREEN);
+                lblStatus.setVisible(true);
+                
+                if (btnRunEvaluation != null) {
+                    btnRunEvaluation.setDisable(false);
+                }
+            }
+        } catch (Exception e) {
+            lblStatus.setText("Error loading projects: " + e.getMessage());
+            lblStatus.setTextFill(Color.RED);
+            lblStatus.setVisible(true);
+        }
     }
 }

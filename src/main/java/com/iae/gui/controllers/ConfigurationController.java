@@ -115,11 +115,10 @@ public class ConfigurationController {
             }
 
             Configuration existing = configService.getConfiguration(selected);
-            String finalLang = (extension != null) ? extension : "";
+            String finalLang = deriveLanguageFromExtension(extension);
             String finalDesc = "";
 
             if (existing != null) {
-                finalLang = existing.getLanguage();
                 String existingDesc = existing.getDescription();
                 if (existingDesc != null) {
                     int idx = existingDesc.indexOf("Compiler Path: ");
