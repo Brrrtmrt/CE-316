@@ -1,15 +1,30 @@
 package com.iae.gui.controllers;
 
+import java.io.File;
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+import com.iae.domain.Configuration;
+import com.iae.service.ConfigurationManager;
 
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
- import javafx.scene.control.Button;
 import javafx.scene.control.Alert;
+import javafx.scene.control.Button;
+import javafx.scene.control.ChoiceDialog;
+import javafx.scene.control.MenuItem;
 import javafx.scene.layout.StackPane;
+import javafx.stage.FileChooser;
 
 public class MainController {
+
+    @FXML private MenuItem menuItemUserManual;
+    @FXML private MenuItem menuItemExport;
+    @FXML private MenuItem menuItemImport;
 
     @FXML private Button btnCreateAssessment;
     @FXML private Button btnConfigSettings;
@@ -17,46 +32,177 @@ public class MainController {
     
     @FXML private StackPane contentArea;
 
-    private ResultsController resultsController;
+    private final Map<String, FXMLLoader> screenCache = new HashMap<>();
+
+    
 
     @FXML
     public void initialize() {
         
-        btnCreateAssessment.setOnAction(e -> loadScreen("/fxml/Project.fxml"));
-        
-        btnConfigSettings.setOnAction(e -> loadScreen("/fxml/Configuration.fxml"));
-        
-        btnProjectResults.setOnAction(e -> loadScreen("/fxml/Results.fxml"));
+        btnCreateAssessment.setOnAction(e -> activateScreen("/fxml/Project.fxml"));
+        btnConfigSettings.setOnAction(e -> activateScreen("/fxml/Configuration.fxml"));
+        btnProjectResults.setOnAction(e -> activateScreen("/fxml/Results.fxml"));
+        if (menuItemExport != null) {
+            menuItemExport.setOnAction(e -> handleExport());
+        }
+        if (menuItemImport != null) {
+            menuItemImport.setOnAction(e -> handleImport());
+        }
+        if (menuItemUserManual != null) {
+            menuItemUserManual.setOnAction(e -> openUserManual());
+        }
+           
     }
 
-    private void loadScreen(String fxmlPath) {
-        try {
-            FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlPath));
-            Parent screen = loader.load();
-            
-            if (fxmlPath.contains("Results.fxml")) {
-                resultsController = loader.getController();
-            } else if (fxmlPath.contains("Project.fxml")) {
-                ProjectController projectController = loader.getController();
-                projectController.setMainController(this);
+    public FXMLLoader loadOrGetScreen(String fxmlPath) {
+        if (!screenCache.containsKey(fxmlPath)) {
+            try {
+                java.net.URL resourceUrl = getClass().getResource(fxmlPath);
+                
+                if (resourceUrl == null) {
+                    System.err.println("Error: FXML file not found at path: " + fxmlPath);
+                    return null; 
+                }
+                
+                FXMLLoader loader = new FXMLLoader(resourceUrl);
+                loader.load(); 
+                Object controller = loader.getController();
+                if (controller instanceof ProjectController) {
+                    ((ProjectController) controller).setMainController(this);
+                }
+                screenCache.put(fxmlPath, loader);
+            } catch (IOException e) {
+                System.err.println("An error occurred while loading the screen: " + fxmlPath);
+                e.printStackTrace();
+                return null;
             }
-            
+        }
+        return screenCache.get(fxmlPath);
+    }
+
+    public void activateScreen(String fxmlPath) {
+        FXMLLoader loader = loadOrGetScreen(fxmlPath);
+        if (loader != null && contentArea != null) {
             contentArea.getChildren().clear();
-            contentArea.getChildren().add(screen); 
-        } catch (Exception e) {
-            System.out.println("An error occurred while loading the screen." + fxmlPath);
-            e.printStackTrace();
-            
-            Alert alert = new Alert(Alert.AlertType.ERROR);
-            alert.setTitle("Navigation Error");
-            alert.setHeaderText("Could not load screen: " + fxmlPath);
-            alert.setContentText("Error: " + e.getMessage() + 
-                    (e.getCause() != null ? "\nCause: " + e.getCause().getMessage() : ""));
-            alert.showAndWait();
+            contentArea.getChildren().add(loader.getRoot());
         }
     }
-    
-    public ResultsController getResultsController() {
-        return resultsController;
+
+    private void handleImport() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Import Configuration");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("JSON Files", "*.json"));
+        
+        File selectedFile = fileChooser.showOpenDialog(contentArea.getScene().getWindow());
+        
+        if (selectedFile != null) {
+            try {
+                ConfigurationManager.getInstance().importConfiguration(selectedFile.getAbsolutePath());
+                
+                screenCache.remove("/fxml/Configuration.fxml");
+                screenCache.remove("/fxml/Project.fxml");
+                
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setTitle("Import Successful");
+                alert.setHeaderText(null);
+                alert.setContentText("Configuration imported successfully from:\n" + selectedFile.getName());
+                alert.showAndWait();
+                
+            } catch (Exception e) {
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Import Failed");
+                alert.setHeaderText("Could not import configuration.");
+                alert.setContentText(e.getMessage());
+                alert.showAndWait();
+            }
+        }
+    }
+
+    private void handleExport() {
+        List<Configuration> configs = ConfigurationManager.getInstance().getAllConfigurations();
+        
+        if (configs.isEmpty()) {
+            Alert alert = new Alert(Alert.AlertType.WARNING);
+            alert.setTitle("No Configurations");
+            alert.setHeaderText(null);
+            alert.setContentText("There are no configurations available to export.");
+            alert.showAndWait();
+            return;
+        }
+
+        List<String> configNames = configs.stream().map(Configuration::getName).collect(Collectors.toList());
+        
+        ChoiceDialog<String> dialog = new ChoiceDialog<>(configNames.get(0), configNames);
+        dialog.setTitle("Export Configuration");
+        dialog.setHeaderText("Select a configuration to export:");
+        dialog.setContentText("Configuration:");
+        
+        Optional<String> result = dialog.showAndWait();
+        
+        if (result.isPresent()) {
+            String selectedConfigName = result.get();
+            
+            FileChooser fileChooser = new FileChooser();
+            fileChooser.setTitle("Export Configuration");
+            fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("JSON Files", "*.json"));
+            fileChooser.setInitialFileName(selectedConfigName.replaceAll("\\s+", "_") + ".json");
+            
+            File selectedFile = fileChooser.showSaveDialog(contentArea.getScene().getWindow());
+            
+            if (selectedFile != null) {
+                try {
+                    ConfigurationManager.getInstance().exportConfiguration(selectedConfigName, selectedFile.getAbsolutePath());
+                    
+                    Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                    alert.setTitle("Export Successful");
+                    alert.setHeaderText(null);
+                    alert.setContentText("Configuration '" + selectedConfigName + "' exported successfully to:\n" + selectedFile.getName());
+                    alert.showAndWait();
+                } catch (Exception e) {
+                    Alert alert = new Alert(Alert.AlertType.ERROR);
+                    alert.setTitle("Export Failed");
+                    alert.setHeaderText("Could not export configuration.");
+                    alert.setContentText(e.getMessage());
+                    alert.showAndWait();
+                }
+            }
+        }
+    }
+
+    private void openUserManual() {
+        if (!java.awt.Desktop.isDesktopSupported() || !java.awt.Desktop.getDesktop().isSupported(java.awt.Desktop.Action.BROWSE)) {
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Not Supported");
+            alert.setHeaderText(null);
+            alert.setContentText("Desktop browsing is not supported on this system.");
+            alert.showAndWait();
+            return;
+        }
+
+        try (java.io.InputStream in = getClass().getResourceAsStream("/help/manual.html")) {
+            
+            if (in == null) {
+                Alert alert = new Alert(Alert.AlertType.ERROR);
+                alert.setTitle("Error");
+                alert.setHeaderText(null);
+                alert.setContentText("User manual file not found!");
+                alert.showAndWait();
+                return;
+            }
+            
+            java.io.File tempFile = java.io.File.createTempFile("iae_manual_", ".html");
+            tempFile.deleteOnExit();
+            java.nio.file.Files.copy(in, tempFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            
+            java.awt.Desktop.getDesktop().browse(tempFile.toURI());
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            Alert alert = new Alert(Alert.AlertType.ERROR);
+            alert.setTitle("Error");
+            alert.setHeaderText(null);
+            alert.setContentText("Failed to open user manual: " + e.getMessage());
+            alert.showAndWait();
+        }
     }
 }

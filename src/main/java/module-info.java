@@ -4,6 +4,7 @@ module com.iae {
     requires java.sql;
     requires com.google.gson;
     requires javafx.graphics;
+    requires java.desktop;
 
     opens com.iae.gui to javafx.fxml;
     opens com.iae.gui.controllers to javafx.fxml;
