@@ -6,8 +6,11 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.HashSet;
+import java.util.Set;
 
 public class DatabaseManager {
 
@@ -94,6 +97,55 @@ public class DatabaseManager {
                 }
             }
         }
+
+        migrateExistingDatabase();
+
+        synchronized (INIT_LOCK) {
+            isInitialized = true;
+        }
+    }
+
+    private static void migrateExistingDatabase() throws SQLException {
+        try (Connection conn = DriverManager.getConnection(dbUrl);
+             Statement stmt = conn.createStatement()) {
+
+            stmt.execute("PRAGMA foreign_keys=ON;");
+
+            Set<String> projectsColumns = getColumnSet(stmt, "projects");
+            if (!projectsColumns.contains("last_run_date")) {
+                stmt.execute("ALTER TABLE projects ADD COLUMN last_run_date TEXT");
+            }
+
+            Set<String> resultsColumns = getColumnSet(stmt, "evaluation_results");
+            if (!resultsColumns.contains("program_output")) {
+                stmt.execute("ALTER TABLE evaluation_results ADD COLUMN program_output TEXT");
+            }
+
+            try (ResultSet rs = stmt.executeQuery(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='evaluation_results'")) {
+                if (rs.next()) {
+                    try (ResultSet idxRs = stmt.executeQuery(
+                            "SELECT name FROM sqlite_master WHERE type='index' "
+                            + "AND tbl_name='evaluation_results' AND sql LIKE '%UNIQUE%'")) {
+                        if (!idxRs.next()) {
+                            stmt.execute(
+                                    "CREATE UNIQUE INDEX IF NOT EXISTS idx_eval_results_project_student "
+                                    + "ON evaluation_results(project_id, student_id)");
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private static Set<String> getColumnSet(Statement stmt, String tableName) throws SQLException {
+        Set<String> columns = new HashSet<>();
+        try (ResultSet rs = stmt.executeQuery("PRAGMA table_info(" + tableName + ")")) {
+            while (rs.next()) {
+                columns.add(rs.getString("name"));
+            }
+        }
+        return columns;
     }
 
     private static String stripSqlComments(String sql) {
