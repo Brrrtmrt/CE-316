@@ -7,7 +7,6 @@ import com.iae.evaluation.strategies.IgnoreWhitespaceStrategy;
 import com.iae.evaluation.strategies.TrimLinesStrategy;
 import com.iae.service.ConfigurationService;
 
-import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
@@ -37,7 +36,6 @@ public class ConfigurationController {
     public void initialize() {
         configService = new ConfigurationService();
         cmbComparisonStrategy.getItems().addAll("Exact Match", "Ignore Whitespace", "Trim Lines");
-
         btnSave.setOnAction(event -> saveConfiguration());
         btnUpdate.setOnAction(event -> updateConfiguration());
         btnDelete.setOnAction(event -> deleteConfiguration());
@@ -89,15 +87,6 @@ public class ConfigurationController {
             String runCmd     = txtRunCommand.getText();
             String strategyStr = cmbComparisonStrategy.getValue();
 
-            if (name == null || name.trim().isEmpty() ||
-                extension == null || extension.trim().isEmpty() ||
-                runCmd == null || runCmd.trim().isEmpty()) {
-                lblStatus.setText("Please fill required fields (Name, Extension, Run Command)!");
-                lblStatus.setTextFill(Color.RED);
-                lblStatus.setVisible(true);
-                return;
-            }
-
             ComparisonStrategy strategyObj;
             if ("Trim Lines".equals(strategyStr)) {
                 strategyObj = new TrimLinesStrategy();
@@ -126,7 +115,7 @@ public class ConfigurationController {
             refreshList();
 
         } catch (Exception e) {
-            lblStatus.setText("Error: " + e.getMessage());
+            lblStatus.setText("Error saving: " + e.getMessage());
             lblStatus.setTextFill(Color.RED);
             lblStatus.setVisible(true);
         }

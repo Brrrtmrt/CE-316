@@ -22,10 +22,6 @@ public class CompileStep extends AbstractEvaluationStep {
     protected void validate(StudentSubmission submission) throws Exception {
         super.validate(submission);
 
-        if (configuration.getCompileCommand() == null) {
-            throw new IllegalStateException("Compile command not configured");
-        }
-
         if (submission.getSourceFile() == null) {
             throw new IllegalStateException("Source file not set on submission — UnzipStep may have failed");
         }
@@ -41,10 +37,17 @@ public class CompileStep extends AbstractEvaluationStep {
 
     @Override
     protected StepResult doExecute(StudentSubmission submission) throws Exception {
-        // Config template uses {src} for source file and {out} for compiled output.
+        // Skip compilation for interpreted languages (Python, JavaScript, etc.)
+        if (configuration.getCompileCommand() == null || configuration.getCompileCommand().isBlank()) {
+            logger.info("Skipping compilation for interpreted language: " + configuration.getLanguage());
+            return StepResult.success(getStepName(),
+                    "Compilation skipped for interpreted language");
+        }
+
         String compileCommand = configuration.getCompileCommand()
                 .replace("{src}", submission.getSourceFile().getAbsolutePath())
-                .replace("{out}", submission.getExecutableFile().getAbsolutePath());
+                .replace("{out}", submission.getExecutableFile().getAbsolutePath())
+                .replace("{dir}", submission.getExtractedDir().getAbsolutePath());
 
         logger.info("Compiling for student " + submission.getStudentId() + ": " + compileCommand);
 
