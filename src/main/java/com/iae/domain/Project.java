@@ -72,20 +72,13 @@ public class Project {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof Project)) return false;
-        Project project = (Project) o;
-        return Objects.equals(id, project.id)
-                && Objects.equals(name, project.name)
-                && Objects.equals(submissionsDirectory, project.submissionsDirectory)
-                && Objects.equals(expectedOutput, project.expectedOutput)
-                && Arrays.equals(programArguments, project.programArguments);
+        if (!(o instanceof Project other)) return false;
+        return id != null && id.equals(other.id);
     }
 
     @Override
     public int hashCode() {
-        int result = Objects.hash(id, name, submissionsDirectory, expectedOutput);
-        result = 31 * result + Arrays.hashCode(programArguments);
-        return result;
+        return id != null ? id.hashCode() : System.identityHashCode(this);
     }
 
     @Override

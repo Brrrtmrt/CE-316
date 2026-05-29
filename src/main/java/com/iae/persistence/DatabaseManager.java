@@ -121,20 +121,14 @@ public class DatabaseManager {
                 stmt.execute("ALTER TABLE evaluation_results ADD COLUMN program_output TEXT");
             }
 
-            try (ResultSet rs = stmt.executeQuery(
-                    "SELECT name FROM sqlite_master WHERE type='table' AND name='evaluation_results'")) {
-                if (rs.next()) {
-                    try (ResultSet idxRs = stmt.executeQuery(
-                            "SELECT name FROM sqlite_master WHERE type='index' "
-                            + "AND tbl_name='evaluation_results' AND sql LIKE '%UNIQUE%'")) {
-                        if (!idxRs.next()) {
-                            stmt.execute(
-                                    "CREATE UNIQUE INDEX IF NOT EXISTS idx_eval_results_project_student "
-                                    + "ON evaluation_results(project_id, student_id)");
-                        }
-                    }
-                }
-            }
+try (ResultSet rs = stmt.executeQuery(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='evaluation_results'")) {
+    if (rs.next()) {
+        stmt.execute(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_eval_results_project_student "
+                        + "ON evaluation_results(project_id, student_id)");
+    }
+}
         }
     }
 
