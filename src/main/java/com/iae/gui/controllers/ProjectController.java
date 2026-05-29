@@ -187,14 +187,14 @@ public class ProjectController {
             }
     
             try {
-                if (MainController.getInstance() != null) {
-                FXMLLoader loader = MainController.getInstance().loadOrGetScreen("/fxml/Results.fxml");
+                if (mainController != null) {
+                    FXMLLoader loader = mainController.loadOrGetScreen("/fxml/Results.fxml");
                     if (loader != null) {
-                    ResultsController resultsController = loader.getController();
-                    resultsController.loadResults(results); 
-                    MainController.getInstance().activateScreen("/fxml/Results.fxml"); 
+                        ResultsController resultsController = loader.getController();
+                        resultsController.loadResults(results); 
+                        mainController.activateScreen("/fxml/Results.fxml"); 
+                    }
                 }
-            }
         } catch (Exception ex) {
             lblStatus.setText("Error loading results screen: " + ex.getMessage());
             lblStatus.setTextFill(Color.RED);

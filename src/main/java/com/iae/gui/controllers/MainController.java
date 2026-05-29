@@ -22,7 +22,6 @@ import javafx.stage.FileChooser;
 
 public class MainController {
 
-    private static MainController instance;
     @FXML private MenuItem menuItemUserManual;
     @FXML private MenuItem menuItemExport;
     @FXML private MenuItem menuItemImport;
@@ -35,13 +34,10 @@ public class MainController {
 
     private final Map<String, FXMLLoader> screenCache = new HashMap<>();
 
-    public static MainController getInstance() {
-        return instance;
-    }
+    
 
     @FXML
     public void initialize() {
-        instance = this;
         
         btnCreateAssessment.setOnAction(e -> activateScreen("/fxml/Project.fxml"));
         btnConfigSettings.setOnAction(e -> activateScreen("/fxml/Configuration.fxml"));
@@ -70,6 +66,10 @@ public class MainController {
                 
                 FXMLLoader loader = new FXMLLoader(resourceUrl);
                 loader.load(); 
+                Object controller = loader.getController();
+                if (controller instanceof ProjectController) {
+                    ((ProjectController) controller).setMainController(this);
+                }
                 screenCache.put(fxmlPath, loader);
             } catch (IOException e) {
                 System.err.println("An error occurred while loading the screen: " + fxmlPath);
@@ -167,7 +167,7 @@ public class MainController {
     }
 
     private void openUserManual() {
-        if (!java.awt.Desktop.isDesktopSupported()) {
+        if (!java.awt.Desktop.isDesktopSupported() || !java.awt.Desktop.getDesktop().isSupported(java.awt.Desktop.Action.BROWSE)) {
             Alert alert = new Alert(Alert.AlertType.ERROR);
             alert.setTitle("Not Supported");
             alert.setHeaderText(null);
@@ -176,8 +176,8 @@ public class MainController {
             return;
         }
 
-        try {
-            java.io.InputStream in = getClass().getResourceAsStream("/help/manual.html");
+        try (java.io.InputStream in = getClass().getResourceAsStream("/help/manual.html")) {
+            
             if (in == null) {
                 Alert alert = new Alert(Alert.AlertType.ERROR);
                 alert.setTitle("Error");
