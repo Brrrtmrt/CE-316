@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -370,5 +371,59 @@ class ProjectServiceIntegrationTest {
         List<Project> all = projectService.getAllProjects();
         assertNotNull(all);
         assertTrue(all.isEmpty());
+    }
+
+    @Test
+    @Order(21)
+    @DisplayName("ResultDAO.save persists and loads programOutput correctly")
+    void resultDAO_programOutput_roundTrip() throws SQLException {
+        Project p = buildJavaProject("ProgramOutputProject");
+        projectDAO.save(p);
+
+        EvaluationResult result = new EvaluationResult("student001");
+        result.setUnzipSuccess(true);
+        result.setCompileSuccess(true);
+        result.setRunSuccess(true);
+        result.setOutputMatch(false);
+        result.setProgramOutput("Hello from student program\nLine 2");
+
+        resultDAO.save(p.getId(), result);
+
+        EvaluationResult loaded = resultDAO.findByProjectAndStudent(p.getId(), "student001");
+        assertNotNull(loaded);
+        assertEquals("Hello from student program\nLine 2", loaded.getProgramOutput());
+    }
+
+    @Test
+    @Order(22)
+    @DisplayName("ProjectDAO.save persists and loads lastRunDate correctly")
+    void projectDAO_lastRunDate_roundTrip() throws SQLException {
+        Project p = buildJavaProject("LastRunDateProject");
+        LocalDateTime testDate = LocalDateTime.of(2025, 6, 15, 14, 30, 0);
+        p.setLastRunDate(testDate);
+
+        projectDAO.save(p);
+
+        Project loaded = projectDAO.findById(Integer.parseInt(p.getId()));
+        assertNotNull(loaded);
+        assertNotNull(loaded.getLastRunDate());
+        assertEquals(testDate, loaded.getLastRunDate());
+    }
+
+    @Test
+    @Order(23)
+    @DisplayName("ProjectDAO.update persists changed lastRunDate correctly")
+    void projectDAO_lastRunDate_updateRoundTrip() throws SQLException {
+        Project p = buildJavaProject("UpdateLastRunDateProject");
+        projectDAO.save(p);
+
+        LocalDateTime newDate = LocalDateTime.of(2025, 12, 25, 8, 0, 0);
+        p.setLastRunDate(newDate);
+        projectDAO.update(p);
+
+        Project loaded = projectDAO.findById(Integer.parseInt(p.getId()));
+        assertNotNull(loaded);
+        assertNotNull(loaded.getLastRunDate());
+        assertEquals(newDate, loaded.getLastRunDate());
     }
 }

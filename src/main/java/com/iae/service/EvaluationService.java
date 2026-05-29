@@ -7,6 +7,7 @@ import com.iae.infrastructure.CommandExecutor;
 import com.iae.infrastructure.FileSystemManager;
 import com.iae.persistence.dao.ResultDAO;
 
+import java.sql.SQLException;
 import java.util.List;
 
 import static com.iae.domain.Status.*;
@@ -122,7 +123,11 @@ public class EvaluationService {
             throw new IllegalArgumentException("Project ID cannot be null or empty");
         }
 
-        return resultDAO.findByProjectId(projectId);
+        try {
+            return resultDAO.findByProjectId(projectId);
+        } catch (SQLException e) {
+            throw new EvaluationException("Failed to retrieve results for project: " + projectId, e);
+        }
     }
 
     /**
@@ -141,7 +146,11 @@ public class EvaluationService {
             throw new IllegalArgumentException("Student ID cannot be null or empty");
         }
 
-        return resultDAO.findByProjectAndStudent(projectId, studentId);
+        try {
+            return resultDAO.findByProjectAndStudent(projectId, studentId);
+        } catch (SQLException e) {
+            throw new EvaluationException("Failed to retrieve result for student: " + studentId, e);
+        }
     }
 
     /**
@@ -156,7 +165,11 @@ public class EvaluationService {
             throw new IllegalArgumentException("Project ID cannot be null or empty");
         }
 
-        resultDAO.deleteByProjectId(projectId);
+        try {
+            resultDAO.deleteByProjectId(projectId);
+        } catch (SQLException e) {
+            throw new EvaluationException("Failed to delete results for project: " + projectId, e);
+        }
     }
 
     /**
