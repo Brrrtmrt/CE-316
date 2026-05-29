@@ -246,7 +246,8 @@ public class ConfigurationController {
 
     private String deriveLanguageFromExtension(String extension) {
         if (extension == null || extension.isBlank()) return "";
-        String ext = extension.toLowerCase().replace(".", "");
+        String ext = extension.toLowerCase().replace(".", "").trim(); 
+        
         return switch (ext) {
             case "java" -> "Java";
             case "py" -> "Python";
@@ -257,7 +258,7 @@ public class ConfigurationController {
             case "cs" -> "C#";
             case "go" -> "Go";
             case "rs" -> "Rust";
-            default -> extension;
+            default -> ext.isEmpty() ? "" : ext.substring(0, 1).toUpperCase() + ext.substring(1);
         };
     }
 }

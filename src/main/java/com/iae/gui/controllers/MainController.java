@@ -99,12 +99,15 @@ public class MainController {
             try {
                 ConfigurationManager.getInstance().importConfiguration(selectedFile.getAbsolutePath());
                 
+                screenCache.remove("/fxml/Configuration.fxml");
+                screenCache.remove("/fxml/Project.fxml");
+                
                 Alert alert = new Alert(Alert.AlertType.INFORMATION);
                 alert.setTitle("Import Successful");
                 alert.setHeaderText(null);
-                alert.setContentText("Configuration imported successfully from:\n" + selectedFile.getName() + 
-                                     "\n\n(If you are on the Configurations screen, please switch tabs to refresh the list.)");
+                alert.setContentText("Configuration imported successfully from:\n" + selectedFile.getName());
                 alert.showAndWait();
+                
             } catch (Exception e) {
                 Alert alert = new Alert(Alert.AlertType.ERROR);
                 alert.setTitle("Import Failed");
