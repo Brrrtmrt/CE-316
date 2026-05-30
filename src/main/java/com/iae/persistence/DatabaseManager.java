@@ -62,9 +62,7 @@ public class DatabaseManager {
         Connection conn = DriverManager.getConnection(dbUrl);
         try (Statement stmt = conn.createStatement()) {
             stmt.execute("PRAGMA foreign_keys=ON;");
-
-            stmt.execute("PRAGMA journal_mode=WAL;");
-            stmt.execute("PRAGMA busy_timeout=5000;");
+            stmt.execute("PRAGMA busy_timeout=20000;");
         }
         return conn;
     }
@@ -95,7 +93,7 @@ public class DatabaseManager {
             stmt.execute("PRAGMA foreign_keys=ON;");
 
             stmt.execute("PRAGMA journal_mode=WAL;");
-            stmt.execute("PRAGMA busy_timeout=5000;");
+            stmt.execute("PRAGMA busy_timeout=20000;");
 
             for (String query : schema.split(";")) {
                 String trimmed = query.trim();
@@ -119,7 +117,7 @@ public class DatabaseManager {
             stmt.execute("PRAGMA foreign_keys=ON;");
 
             stmt.execute("PRAGMA journal_mode=WAL;");
-            stmt.execute("PRAGMA busy_timeout=5000;");
+            stmt.execute("PRAGMA busy_timeout=20000;");
 
             Set<String> projectsColumns = getColumnSet(stmt, "projects");
             if (!projectsColumns.contains("last_run_date")) {
