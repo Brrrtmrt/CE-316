@@ -25,7 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class ConfigurationServiceTest {
 
-    private static final Path CONFIG_DIR = Paths.get("config");
+    private static final Path CONFIG_DIR = Paths.get(System.getProperty("user.home"), ".iae", "config");
     private ConfigurationService service;
 
     @BeforeEach
@@ -75,7 +75,7 @@ class ConfigurationServiceTest {
                 new ExactMatchStrategy(), ""
         );
 
-        File jsonFile = new File("config", "Test_FileCheck.json");
+        File jsonFile = CONFIG_DIR.resolve("Test_FileCheck.json").toFile();
         assertTrue(jsonFile.exists(), "JSON file should be created under config/");
     }
 
@@ -242,8 +242,8 @@ class ConfigurationServiceTest {
         service.createConfiguration("Test_Orphan", "C", ".c", "gcc {src}", "./{out}",
                 new ExactMatchStrategy(), "");
 
-        File oldFile = new File("config", "Test_Orphan.json");
-        File newFile = new File("config", "Test_Renamed.json");
+        File oldFile = CONFIG_DIR.resolve("Test_Orphan.json").toFile();
+        File newFile = CONFIG_DIR.resolve("Test_Renamed.json").toFile();
         assertTrue(oldFile.exists(), "Precondition: old file should exist on disk");
 
         service.updateConfiguration("Test_Orphan", "Test_Renamed", "C", ".c",
@@ -300,7 +300,7 @@ class ConfigurationServiceTest {
         service.createConfiguration("Test_HardDel", "Python", ".py", "", "python3 {src}",
                 new ExactMatchStrategy(), "");
 
-        File jsonFile = new File("config", "Test_HardDel.json");
+        File jsonFile = CONFIG_DIR.resolve("Test_HardDel.json").toFile();
         assertTrue(jsonFile.exists(), "Precondition: file should exist on disk");
 
         service.deleteConfiguration("Test_HardDel");

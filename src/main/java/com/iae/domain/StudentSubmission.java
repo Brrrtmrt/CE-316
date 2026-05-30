@@ -73,4 +73,5 @@ public class StudentSubmission {
     public void setEvaluationResult(EvaluationResult evaluationResult) {
         this.evaluationResult = evaluationResult;
     }
+
 }
