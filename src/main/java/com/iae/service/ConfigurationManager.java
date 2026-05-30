@@ -1,5 +1,5 @@
 package com.iae.service;
-
+import com.iae.util.Logger;
 import com.iae.domain.Configuration;
 import com.iae.persistence.ConfigurationIO;
 import com.iae.persistence.ConfigurationPersistenceException;
@@ -139,9 +139,10 @@ public class ConfigurationManager {
             for (Configuration config : configs) {
                 configurationCache.put(config.getName(), config);
             }
-            System.out.println("Loaded " + configs.size() + " configuration(s) from disk.");
+            Logger.info("Loaded " + configs.size() + " configuration(s) from disk.");
         } catch (Exception e) {
-            System.err.println("Failed to load configurations: " + e.getMessage());
+            Logger.error("Failed to load configurations.", e);
+
         }
     }
 
