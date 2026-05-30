@@ -1,15 +1,5 @@
 package com.iae.service;
 
-import com.iae.domain.Configuration;
-import com.iae.domain.ConfigurationBuilder;
-import com.iae.domain.EvaluationResult;
-import com.iae.domain.Project;
-import com.iae.domain.Status;
-import com.iae.evaluation.strategies.TrimLinesStrategy;
-import com.iae.persistence.DatabaseManager;
-import com.iae.persistence.dao.ProjectDAO;
-import org.junit.jupiter.api.*;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -20,8 +10,24 @@ import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import org.junit.jupiter.api.AfterEach;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
+
+import com.iae.domain.Configuration;
+import com.iae.domain.ConfigurationBuilder;
+import com.iae.domain.EvaluationResult;
+import com.iae.domain.Project;
+import com.iae.domain.Status;
+import com.iae.evaluation.strategies.TrimLinesStrategy;
+import com.iae.persistence.DatabaseManager;
+import com.iae.persistence.dao.ProjectDAO;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class EvaluationServiceIntegrationTest {
@@ -57,15 +63,17 @@ class EvaluationServiceIntegrationTest {
     @Test
     @DisplayName("Evaluate Java Submissions")
     void testJavaEvaluation() throws Exception {
-        Assumptions.assumeTrue(isCommandAvailable("javac"), "javac not found in PATH");
-        Assumptions.assumeTrue(isCommandAvailable("java"), "java not found in PATH");
+        String javacCmd = getJavaExecutable("javac");
+        String javaCmd = getJavaExecutable("java");
+
+        Assumptions.assumeTrue(new File(javacCmd.replace("\"", "")).exists(), "javac not found in java.home");
 
         Configuration config = new ConfigurationBuilder()
                 .setName("Java Config")
                 .setLanguage("Java")
                 .setFileExtension("java")
-                .setCompileCommand("javac {src}")
-                .setRunCommand("java -cp {dir} Main {args}")
+                .setCompileCommand(javacCmd + " \"{src}\"")
+                .setRunCommand(javaCmd + " -cp \"{dir}\" Main {args}")
                 .setComparisonStrategy(new TrimLinesStrategy())
                 .build();
 
@@ -192,5 +200,13 @@ class EvaluationServiceIntegrationTest {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    private String getJavaExecutable(String command) {
+        String javaHome = System.getProperty("java.home");
+        File executable = new File(javaHome + File.separator + "bin", 
+            command + (System.getProperty("os.name").toLowerCase().contains("win") ? ".exe" : ""));
+        String path = executable.getAbsolutePath();
+        return path.contains(" ") ? "\"" + path + "\"" : path;
     }
 }
