@@ -10,6 +10,7 @@ import com.iae.evaluation.strategies.TrimLinesStrategy;
 import com.iae.persistence.DatabaseManager;
 
 import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,15 +33,13 @@ import java.util.List;
  */
 public class ProjectDAO extends BaseDAO {
 
-    /**
-     * Finds a project by its primary key.
-     *
-     * @param id the project's database id
-     * @return the {@link Project}, or {@code null} if not found
-     * @throws SQLException on any database error
-     */
+    private static final String SELECT_COLUMNS =
+            "id, name, config_name, language, file_extension, compile_command, "
+            + "run_command, comparison_strategy, description, submissions_directory, "
+            + "program_arguments, expected_output, last_run_date";
+
     public Project findById(int id) throws SQLException {
-        String sql = "SELECT * FROM projects WHERE id = ?";
+        String sql = "SELECT " + SELECT_COLUMNS + " FROM projects WHERE id = ?";
 
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -56,14 +55,8 @@ public class ProjectDAO extends BaseDAO {
         return null;
     }
 
-    /**
-     * Returns all projects stored in the database.
-     *
-     * @return list of projects (empty if none)
-     * @throws SQLException on any database error
-     */
     public List<Project> findAll() throws SQLException {
-        String sql = "SELECT * FROM projects";
+        String sql = "SELECT " + SELECT_COLUMNS + " FROM projects ORDER BY id";
         List<Project> projects = new ArrayList<>();
 
         try (Connection conn = DatabaseManager.getConnection();
@@ -88,33 +81,40 @@ public class ProjectDAO extends BaseDAO {
      * @throws SQLException on any database error
      */
     public void save(Project project) throws SQLException {
+        if (project == null) {
+            throw new IllegalArgumentException("project must not be null");
+        }
+        if (project.getConfiguration() == null) {
+            throw new IllegalArgumentException("project.configuration must not be null");
+        }
+
         String sql = """
                 INSERT INTO projects
                     (name, config_name, language, file_extension,
                      compile_command, run_command, comparison_strategy, description,
-                     submissions_directory, program_arguments, expected_output)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                     submissions_directory, program_arguments, expected_output, last_run_date)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
 
         try (Connection conn = DatabaseManager.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) { // Cleaned: Removed RETURN_GENERATED_KEYS flag
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             Configuration cfg = project.getConfiguration();
             stmt.setString(1,  project.getName());
             stmt.setString(2,  cfg.getName());
             stmt.setString(3,  cfg.getLanguage());
             stmt.setString(4,  cfg.getFileExtension());
-            stmt.setString(5,  cfg.getCompileCommand());          // may be null (Python)
+            stmt.setString(5,  cfg.getCompileCommand() == null ? "" : cfg.getCompileCommand());
             stmt.setString(6,  cfg.getRunCommand());
             stmt.setString(7,  strategyToKey(cfg.getComparisonStrategy()));
             stmt.setString(8,  cfg.getDescription());
             stmt.setString(9,  project.getSubmissionsDirectory());
             stmt.setString(10, joinArgs(project.getProgramArguments()));
             stmt.setString(11, project.getExpectedOutput());
+            stmt.setString(12, formatLocalDateTime(project.getLastRunDate()));
 
             stmt.executeUpdate();
 
-            // Safe & Native SQLite approach to fetch the auto-incremented primary key
             try (Statement idStmt = conn.createStatement();
                  ResultSet rs = idStmt.executeQuery("SELECT last_insert_rowid()")) {
                 if (rs.next()) {
@@ -134,8 +134,14 @@ public class ProjectDAO extends BaseDAO {
      * @throws IllegalArgumentException if the project has no id
      */
     public void update(Project project) throws SQLException {
+        if (project == null) {
+            throw new IllegalArgumentException("project must not be null");
+        }
         if (project.getId() == null) {
             throw new IllegalArgumentException("Cannot update a project with no id");
+        }
+        if (project.getConfiguration() == null) {
+            throw new IllegalArgumentException("project.configuration must not be null");
         }
 
         String sql = """
@@ -150,7 +156,8 @@ public class ProjectDAO extends BaseDAO {
                     description           = ?,
                     submissions_directory = ?,
                     program_arguments     = ?,
-                    expected_output       = ?
+                    expected_output       = ?,
+                    last_run_date         = ?
                 WHERE id = ?
                 """;
 
@@ -162,16 +169,20 @@ public class ProjectDAO extends BaseDAO {
             stmt.setString(2,  cfg.getName());
             stmt.setString(3,  cfg.getLanguage());
             stmt.setString(4,  cfg.getFileExtension());
-            stmt.setString(5,  cfg.getCompileCommand());
+            stmt.setString(5,  cfg.getCompileCommand() == null ? "" : cfg.getCompileCommand());
             stmt.setString(6,  cfg.getRunCommand());
             stmt.setString(7,  strategyToKey(cfg.getComparisonStrategy()));
             stmt.setString(8,  cfg.getDescription());
             stmt.setString(9,  project.getSubmissionsDirectory());
             stmt.setString(10, joinArgs(project.getProgramArguments()));
             stmt.setString(11, project.getExpectedOutput());
-            stmt.setInt(12,    Integer.parseInt(project.getId()));
+            stmt.setString(12, formatLocalDateTime(project.getLastRunDate()));
+            stmt.setInt(13,    parseIdOrThrow(project.getId()));
 
-            stmt.executeUpdate();
+            int affected = stmt.executeUpdate();
+            if (affected == 0) {
+                throw new SQLException("Update affected no rows; no project exists with id=" + project.getId());
+            }
         }
     }
 
@@ -182,14 +193,22 @@ public class ProjectDAO extends BaseDAO {
      * @param id the project's database id
      * @throws SQLException on any database error
      */
-    public void delete(int id) throws SQLException {
+    public int delete(int id) throws SQLException {
         String sql = "DELETE FROM projects WHERE id = ?";
 
         try (Connection conn = DatabaseManager.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
 
             stmt.setInt(1, id);
-            stmt.executeUpdate();
+            return stmt.executeUpdate();
+        }
+    }
+
+    private int parseIdOrThrow(String id) throws SQLException {
+        try {
+            return Integer.parseInt(id);
+        } catch (NumberFormatException e) {
+            throw new SQLException("Invalid project id (not an integer): " + id, e);
         }
     }
 
@@ -214,6 +233,7 @@ public class ProjectDAO extends BaseDAO {
 
         project.setId(String.valueOf(rs.getInt("id")));
         project.setName(rs.getString("name"));
+        project.setLastRunDate(parseLocalDateTime(rs.getString("last_run_date")));
         return project;
     }
 
@@ -255,5 +275,14 @@ public class ProjectDAO extends BaseDAO {
     private String joinArgs(String[] args) {
         if (args == null || args.length == 0) return null;
         return String.join(",", args);
+    }
+
+    private String formatLocalDateTime(LocalDateTime dateTime) {
+        return dateTime != null ? dateTime.toString() : null;
+    }
+
+    private LocalDateTime parseLocalDateTime(String value) {
+        if (value == null || value.isBlank()) return null;
+        return LocalDateTime.parse(value);
     }
 }
