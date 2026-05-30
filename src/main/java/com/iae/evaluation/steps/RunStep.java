@@ -38,9 +38,11 @@ public class RunStep extends AbstractEvaluationStep {
     @Override
     protected StepResult doExecute(StudentSubmission submission) throws Exception {
         // Config template uses {out} for the executable path and {args} for program arguments.
+        String srcPath = submission.getSourceFile() != null ? submission.getSourceFile().getAbsolutePath() : "";
         String args = String.join(" ", programArguments);
         String runCommand = configuration.getRunCommand()
                 .replace("{out}", submission.getExecutableFile().getAbsolutePath())
+                .replace("{src}", srcPath) // Source ...
                 .replace("{args}", args)
                 .replace("{dir}", submission.getExtractedDir().getAbsolutePath());
 
@@ -55,7 +57,7 @@ public class RunStep extends AbstractEvaluationStep {
 
         if (execOutput.exitCode() != 0) {
             logger.warning("Execution failed for student " + submission.getStudentId() + " with exit code: " + execOutput.exitCode());
-            return StepResult.failure(getStepName(), 
+            return StepResult.failure(getStepName(),
                     "Execution failed with exit code: " + execOutput.exitCode());
         }
 
