@@ -6,7 +6,7 @@ import java.io.File;
  * Application-wide constants for the Integrated Assignment Environment (IAE).
  *
  * <p>This class centralises the "magic" strings and paths that would otherwise
- * be duplicated across the persistence, service and GUI layers (for example the
+ * be duplicated acroass the persistence, service and GUI layers (for example the
  * {@code ~/.iae} application directory, the {@code config} sub-directory, the
  * SQLite database file name and the JSON field keys). Keeping them in one place
  * prevents the layers from drifting apart over time.
@@ -32,7 +32,7 @@ public final class Constants {
     public static final String APP_SHORT_NAME = "IAE";
 
     /** Application version (kept in sync with the {@code <version>} in pom.xml). */
-    public static final String APP_VERSION = "1.0.0";
+    public static final String APP_VERSION = "1.0-SNAPSHOT";
 
     // -------------------------------------------------------------------------
     // File system layout (all relative to the user's home directory)
