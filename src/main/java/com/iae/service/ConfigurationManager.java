@@ -132,7 +132,8 @@ public class ConfigurationManager {
             }
             Logger.info("Loaded " + configs.size() + " configuration(s) from disk.");
         } catch (Exception e) {
-            System.err.println("Failed to load configurations: " + e.getMessage());
+            Logger.error("Failed to load configurations.", e);
+
         }
     }
 

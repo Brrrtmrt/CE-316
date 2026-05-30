@@ -7,7 +7,6 @@ import com.iae.evaluation.strategies.IgnoreWhitespaceStrategy;
 import com.iae.evaluation.strategies.TrimLinesStrategy;
 import com.iae.service.ConfigurationService;
 
-import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.ComboBox;
@@ -37,7 +36,6 @@ public class ConfigurationController {
     public void initialize() {
         configService = new ConfigurationService();
         cmbComparisonStrategy.getItems().addAll("Exact Match", "Ignore Whitespace", "Trim Lines");
-
         btnSave.setOnAction(event -> saveConfiguration());
         btnUpdate.setOnAction(event -> updateConfiguration());
         btnDelete.setOnAction(event -> deleteConfiguration());
@@ -64,8 +62,10 @@ public class ConfigurationController {
             txtConfigName.setText(config.getName());
             txtFileExtension.setText(config.getFileExtension());
 
+            // Fix: trim first and guard for blank before splitting (Copilot #2)
             String compileCmd = config.getCompileCommand() != null ? config.getCompileCommand() : "";
-            String firstToken = compileCmd.split("\\s+")[0];
+            String trimmedCompileCmd = compileCmd.trim();
+            String firstToken = trimmedCompileCmd.isBlank() ? "" : trimmedCompileCmd.split("\\s+")[0];
             txtCompilerPath.setText(firstToken.equals("{src}") ? "" : firstToken);
 
             txtCompileCommand.setText(compileCmd);
@@ -88,15 +88,6 @@ public class ConfigurationController {
             String compileCmd = txtCompileCommand.getText();
             String runCmd     = txtRunCommand.getText();
             String strategyStr = cmbComparisonStrategy.getValue();
-
-            if (name == null || name.trim().isEmpty() ||
-                extension == null || extension.trim().isEmpty() ||
-                runCmd == null || runCmd.trim().isEmpty()) {
-                lblStatus.setText("Please fill required fields (Name, Extension, Run Command)!");
-                lblStatus.setTextFill(Color.RED);
-                lblStatus.setVisible(true);
-                return;
-            }
 
             ComparisonStrategy strategyObj;
             if ("Trim Lines".equals(strategyStr)) {
@@ -126,7 +117,7 @@ public class ConfigurationController {
             refreshList();
 
         } catch (Exception e) {
-            lblStatus.setText("Error: " + e.getMessage());
+            lblStatus.setText("Error saving: " + e.getMessage());
             lblStatus.setTextFill(Color.RED);
             lblStatus.setVisible(true);
         }
@@ -232,7 +223,7 @@ public class ConfigurationController {
         StringBuilder sb = new StringBuilder();
         for (String line : description.split("\\r?\\n")) {
             if (!line.trim().startsWith("Compiler Path:")) {
-                if (!sb.isEmpty()) sb.append('\n');
+                if (sb.length() > 0) sb.append('\n'); // Fix: sb.isEmpty() -> sb.length() > 0 (Copilot #1)
                 sb.append(line);
             }
         }
