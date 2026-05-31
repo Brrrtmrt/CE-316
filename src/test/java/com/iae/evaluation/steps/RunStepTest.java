@@ -42,7 +42,7 @@ class RunStepTest {
     private StudentSubmission submissionWithExistingExecutable() throws IOException {
         File exe = tempDir.resolve("Main.exe").toFile();
         exe.createNewFile();
-        StudentSubmission sub = new StudentSubmission("s1", tempDir.resolve("student.zip").toFile());
+        StudentSubmission sub = new StudentSubmission("s1", tempDir.resolve("student.zip").toFile(),tempDir.toFile());
         sub.setExecutableFile(exe);
         return sub;
     }
@@ -56,7 +56,7 @@ class RunStepTest {
 
     @Test
     void executableNotExist_commandContainsOut_returnsError() {
-        StudentSubmission sub = new StudentSubmission("s1", tempDir.resolve("student.zip").toFile());
+        StudentSubmission sub = new StudentSubmission("s1", tempDir.resolve("student.zip").toFile(),tempDir.toFile());
         sub.setExecutableFile(tempDir.resolve("Main.exe").toFile()); // not created on disk
         assertFalse(new RunStep(new CommandExecutor(), config("{out}"), new String[0]).execute(sub).isSuccess());
     }

@@ -107,18 +107,6 @@ public class ConfigurationManager {
     // -------------------------------------------------------------------------
 
     /**
-     * Rebuilds the in-memory cache from the {@code config/} directory.
-     *
-     * <p>The cache is cleared first, so this method is a true "reload from disk":
-     * configurations that exist only in memory (e.g. unsaved additions) or that
-     * were removed externally from disk will no longer be present after the call.
-     *
-     * <p><strong>Note (destructive on failure):</strong> if {@link ConfigurationIO}
-     * cannot read from disk, the cache is left empty and the error is logged
-     * to {@code System.err}. Callers that need stronger guarantees should
-     * snapshot {@link #getAllConfigurations()} before invoking reload.
-     */
-    /**
      * Loads all configurations from the {@code config/} directory into the
      * in-memory cache. Called automatically in the constructor; can also be
      * called explicitly to refresh the cache (e.g. after external file changes).
@@ -129,11 +117,9 @@ public class ConfigurationManager {
 
             if (configs == null) {
                 System.out.println("No configurations found on disk (loadAllConfigurations returned null).");
-                configurationCache.clear(); // Disk boşsa/okunamadıysa belleği de sıfırla ki senkronize kalsın
+                configurationCache.clear();
                 return;
             }
-
-            // -> ASIL DÜZELTME BURASI: Diskten gelen temiz verileri yüklemeden önce eski belleği uçuruyoruz <-
             configurationCache.clear();
 
             for (Configuration config : configs) {

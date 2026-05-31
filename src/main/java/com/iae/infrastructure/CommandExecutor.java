@@ -66,6 +66,7 @@ public class CommandExecutor {
 
         ProcessBuilder pb = createProcessBuilder(command, workingDirectory).redirectErrorStream(true); // Merge stderr into stdout
         Process process = pb.start();
+        process.getOutputStream().close(); // Close the stdin for process
 
         // Consume output to prevent deadlock
         Thread outputConsumer = new Thread(() -> {
@@ -106,6 +107,7 @@ public class CommandExecutor {
     public ExecutionOutput executeAndCapture(String command, File workingDirectory) throws IOException, InterruptedException {
         ProcessBuilder pb = createProcessBuilder(command, workingDirectory).redirectErrorStream(true);
         Process process = pb.start();
+        process.getOutputStream().close(); // Close the stdin for process
 
         StringBuilder output = new StringBuilder();
         final int MAX_OUTPUT_CHARS = 1_000_000; // 1MB limit for OOM attacks

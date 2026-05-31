@@ -43,7 +43,7 @@ class UnzipStepTest {
 
     @Test
     void zipFileDoesNotExist_returnsError() {
-        StudentSubmission sub = new StudentSubmission("s1", tempDir.resolve("missing.zip").toFile());
+        StudentSubmission sub = new StudentSubmission("s1", tempDir.resolve("missing.zip").toFile(), tempDir.toFile());
         assertFalse(new UnzipStep(config(".java")).execute(sub).isSuccess());
     }
 
@@ -51,13 +51,13 @@ class UnzipStepTest {
     void fileNotEndingInZip_returnsError() throws IOException {
         File notZip = tempDir.resolve("student.txt").toFile();
         notZip.createNewFile();
-        assertFalse(new UnzipStep(config(".java")).execute(new StudentSubmission("s1", notZip)).isSuccess());
+        assertFalse(new UnzipStep(config(".java")).execute(new StudentSubmission("s1", notZip, tempDir.toFile())).isSuccess());
     }
 
     @Test
     void successfulExtraction_returnsSuccess() throws IOException {
         File zip = createZip("student.zip", "Main.java", "public class Main {}");
-        StepResult result = new UnzipStep(config(".java")).execute(new StudentSubmission("s1", zip));
+        StepResult result = new UnzipStep(config(".java")).execute(new StudentSubmission("s1", zip, tempDir.toFile()));
         assertTrue(result.isSuccess());
         assertEquals("UNZIP", result.getStepName());
     }
@@ -65,7 +65,7 @@ class UnzipStepTest {
     @Test
     void successfulExtraction_setsSourceAndExecutableFile() throws IOException {
         File zip = createZip("student.zip", "Main.java", "public class Main {}");
-        StudentSubmission sub = new StudentSubmission("s1", zip);
+        StudentSubmission sub = new StudentSubmission("s1", zip, tempDir.toFile());
         new UnzipStep(config(".java")).execute(sub);
         assertNotNull(sub.getSourceFile());
         assertTrue(sub.getSourceFile().getName().endsWith(".java"));
@@ -75,12 +75,12 @@ class UnzipStepTest {
     @Test
     void noMatchingSourceFile_returnsFailure() throws IOException {
         File zip = createZip("student.zip", "readme.txt", "some text");
-        assertFalse(new UnzipStep(config(".java")).execute(new StudentSubmission("s1", zip)).isSuccess());
+        assertFalse(new UnzipStep(config(".java")).execute(new StudentSubmission("s1", zip, tempDir.toFile())).isSuccess());
     }
 
     @Test
     void extensionWithoutLeadingDot_stillMatches() throws IOException {
         File zip = createZip("student.zip", "Main.java", "public class Main {}");
-        assertTrue(new UnzipStep(config("java")).execute(new StudentSubmission("s1", zip)).isSuccess());
+        assertTrue(new UnzipStep(config("java")).execute(new StudentSubmission("s1", zip, tempDir.toFile())).isSuccess());
     }
 }

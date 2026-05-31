@@ -40,7 +40,7 @@ class CompileStepTest {
     private StudentSubmission submissionWithSourceFile() throws IOException {
         File source = tempDir.resolve("Main.java").toFile();
         source.createNewFile();
-        StudentSubmission sub = new StudentSubmission("s1", tempDir.resolve("student.zip").toFile());
+        StudentSubmission sub = new StudentSubmission("s1", tempDir.resolve("student.zip").toFile(),tempDir.toFile());
         sub.setSourceFile(source);
         sub.setExecutableFile(tempDir.resolve("Main.exe").toFile());
         return sub;
@@ -55,7 +55,7 @@ class CompileStepTest {
 
     @Test
     void sourceFileNotSet_returnsError() {
-        StudentSubmission sub = new StudentSubmission("s1", tempDir.resolve("student.zip").toFile());
+        StudentSubmission sub = new StudentSubmission("s1", tempDir.resolve("student.zip").toFile(),tempDir.toFile());
         sub.setExecutableFile(tempDir.resolve("Main.exe").toFile());
         assertFalse(new CompileStep(new CommandExecutor(), config("javac {src}")).execute(sub).isSuccess());
     }
