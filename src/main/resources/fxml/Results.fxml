@@ -15,7 +15,6 @@
         <columns>
             <TableColumn fx:id="studentIdCol" text="Student ID" prefWidth="150.0"/>
             <TableColumn fx:id="statusCol" text="Status" prefWidth="100.0"/>
-            <TableColumn fx:id="matchPercentageCol" text="Match %" prefWidth="100.0"/>
             <TableColumn fx:id="actionCol" text="Actions" prefWidth="150.0"/>
         </columns>
     </TableView>
