@@ -31,18 +31,28 @@ import javafx.stage.Stage;
 
 public class ProjectController {
 
-    @FXML private TextField txtProjectName; 
-    @FXML private TextField txtDirectoryPath;
-    @FXML private ComboBox<String> cmbConfigurations;
-    @FXML private TextField txtArguments;
-    @FXML private TextArea txtExpectedOutput;
-    
+    @FXML
+    private TextField txtProjectName;
+    @FXML
+    private TextField txtDirectoryPath;
+    @FXML
+    private ComboBox<String> cmbConfigurations;
+    @FXML
+    private TextField txtArguments;
+    @FXML
+    private TextArea txtExpectedOutput;
 
-    @FXML private Button btnBrowse;
-    @FXML private Button btnCreateProject;
-    @FXML private Button btnOpenProject;
-    @FXML private Button btnRunEvaluation;
-    @FXML private Label lblStatus;
+
+    @FXML
+    private Button btnBrowse;
+    @FXML
+    private Button btnCreateProject;
+    @FXML
+    private Button btnOpenProject;
+    @FXML
+    private Button btnRunEvaluation;
+    @FXML
+    private Label lblStatus;
 
     private ConfigurationManager configManager;
     private ProjectService projectService;
@@ -60,7 +70,7 @@ public class ProjectController {
         btnBrowse.setOnAction(event -> browseDirectory());
         btnCreateProject.setOnAction(event -> createProject());
         if (btnRunEvaluation != null) {
-            btnRunEvaluation.setDisable(true); 
+            btnRunEvaluation.setDisable(true);
             btnRunEvaluation.setOnAction(event -> runEvaluation());
         }
 
@@ -73,7 +83,7 @@ public class ProjectController {
 
     private void loadConfigurationsIntoComboBox() {
         List<Configuration> configs = configManager.getAllConfigurations();
-        
+
         if (configs != null && !configs.isEmpty()) {
             for (Configuration config : configs) {
                 cmbConfigurations.getItems().add(config.getName());
@@ -86,7 +96,7 @@ public class ProjectController {
     private void browseDirectory() {
         DirectoryChooser directoryChooser = new DirectoryChooser();
         directoryChooser.setTitle("Select Submissions Directory");
-        
+
         Stage stage = (Stage) btnBrowse.getScene().getWindow();
         File selectedDirectory = directoryChooser.showDialog(stage);
 
@@ -138,13 +148,13 @@ public class ProjectController {
 
             currentProject = new Project(selectedConfig, dirPath, argsArray, expectedOutput);
             currentProject.setName(projectName);
-            
+
             projectService.createProject(currentProject);
 
             lblStatus.setText("Project created! Click 'Run Evaluation' to start.");
             lblStatus.setTextFill(Color.GREEN);
             lblStatus.setVisible(true);
-            
+
             if (btnRunEvaluation != null) {
                 btnRunEvaluation.setDisable(false);
             }
@@ -162,6 +172,21 @@ public class ProjectController {
             lblStatus.setTextFill(Color.RED);
             lblStatus.setVisible(true);
             return;
+        }
+        String configName = currentProject.getConfiguration().getName();
+        Configuration freshConfig = configManager.getConfiguration(configName);
+
+        String oldId = currentProject.getId();
+        String oldName = currentProject.getName();
+        if (freshConfig != null) {
+            currentProject = new Project(
+                    freshConfig,
+                    currentProject.getSubmissionsDirectory(),
+                    currentProject.getProgramArguments(),
+                    currentProject.getExpectedOutput()
+            );
+            currentProject.setId(oldId);
+            currentProject.setName(oldName);
         }
 
         lblStatus.setText("Running evaluation...");
@@ -185,21 +210,21 @@ public class ProjectController {
             if (btnRunEvaluation != null) {
                 btnRunEvaluation.setDisable(false);
             }
-    
+
             try {
                 if (mainController != null) {
                     FXMLLoader loader = mainController.loadOrGetScreen("/fxml/Results.fxml");
                     if (loader != null) {
                         ResultsController resultsController = loader.getController();
-                        resultsController.loadResults(results); 
-                        mainController.activateScreen("/fxml/Results.fxml"); 
+                        resultsController.loadResults(results);
+                        mainController.activateScreen("/fxml/Results.fxml");
                     }
                 }
-        } catch (Exception ex) {
-            lblStatus.setText("Error loading results screen: " + ex.getMessage());
-            lblStatus.setTextFill(Color.RED);
-        }
-    });
+            } catch (Exception ex) {
+                lblStatus.setText("Error loading results screen: " + ex.getMessage());
+                lblStatus.setTextFill(Color.RED);
+            }
+        });
 
         task.setOnFailed(event -> {
             lblStatus.setText("Evaluation failed: " + task.getException().getMessage());
@@ -213,7 +238,7 @@ public class ProjectController {
     private void openExistingProject() {
         try {
             List<Project> projects = projectService.getAllProjects();
-            
+
             if (projects == null || projects.isEmpty()) {
                 Alert alert = new Alert(Alert.AlertType.INFORMATION);
                 alert.setTitle("Open Project");
@@ -222,46 +247,46 @@ public class ProjectController {
                 alert.showAndWait();
                 return;
             }
-            
+
             Map<String, Project> projectMap = new HashMap<>();
             for (Project p : projects) {
                 String displayName = p.getName() + " (ID: " + p.getId() + ")";
                 projectMap.put(displayName, p);
             }
-            
+
             List<String> displayNames = projectMap.keySet().stream().sorted().collect(Collectors.toList());
-            
+
             ChoiceDialog<String> dialog = new ChoiceDialog<>(displayNames.get(0), displayNames);
             dialog.setTitle("Open Existing Project");
             dialog.setHeaderText("Select a project to load:");
             dialog.setContentText("Project:");
-            
+
             Optional<String> result = dialog.showAndWait();
-            
+
             if (result.isPresent()) {
                 Project selectedProject = projectMap.get(result.get());
-                
+
                 txtProjectName.setText(selectedProject.getName());
                 txtDirectoryPath.setText(selectedProject.getSubmissionsDirectory());
-                
+
                 if (selectedProject.getConfiguration() != null) {
                     cmbConfigurations.setValue(selectedProject.getConfiguration().getName());
                 }
-                
+
                 if (selectedProject.getProgramArguments() != null && selectedProject.getProgramArguments().length > 0) {
                     txtArguments.setText(String.join(" ", selectedProject.getProgramArguments()));
                 } else {
                     txtArguments.setText("");
                 }
-                
+
                 txtExpectedOutput.setText(selectedProject.getExpectedOutput() != null ? selectedProject.getExpectedOutput() : "");
-                
+
                 currentProject = selectedProject;
-                
+
                 lblStatus.setText("Project '" + selectedProject.getName() + "' loaded successfully!");
                 lblStatus.setTextFill(Color.GREEN);
                 lblStatus.setVisible(true);
-                
+
                 if (btnRunEvaluation != null) {
                     btnRunEvaluation.setDisable(false);
                 }
