@@ -45,9 +45,13 @@ public class CompileStep extends AbstractEvaluationStep {
         }
 
         String compileCommand = configuration.getCompileCommand()
-                .replace("{src}", submission.getSourceFile().getAbsolutePath())
+                .replace("{src}", submission.getSourceFile() != null
+                        ? submission.getSourceFile().getAbsolutePath() : "")
                 .replace("{out}", submission.getExecutableFile().getAbsolutePath())
                 .replace("{dir}", submission.getExtractedDir().getAbsolutePath());
+
+        // Remove unresolved placeholders so they don't reach the shell
+        compileCommand = compileCommand.replaceAll("\\{\\w+\\}", "").trim();
 
         logger.info("Compiling for student " + submission.getStudentId() + ": " + compileCommand);
 

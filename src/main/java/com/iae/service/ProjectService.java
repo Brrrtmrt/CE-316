@@ -259,15 +259,4 @@ public class ProjectService {
             );
         }
     }
-
-    public static class ProjectServiceException
-            extends com.iae.service.ProjectServiceException {
-
-        public ProjectServiceException(
-                String message,
-                Throwable cause
-        ) {
-            super(message, cause);
-        }
-    }
 }

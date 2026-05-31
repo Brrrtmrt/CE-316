@@ -30,7 +30,8 @@ public class DatabaseManager {
     private static volatile boolean isInitialized = false;
     private static final Object INIT_LOCK = new Object();
 
-    private DatabaseManager() {}
+    private DatabaseManager() {
+    }
 
     public static void setDbUrl(String newUrl) {
         if (newUrl == null || newUrl.isBlank()) {
@@ -61,6 +62,7 @@ public class DatabaseManager {
         Connection conn = DriverManager.getConnection(dbUrl);
         try (Statement stmt = conn.createStatement()) {
             stmt.execute("PRAGMA foreign_keys=ON;");
+            stmt.execute("PRAGMA busy_timeout=20000;");
         }
         return conn;
     }
@@ -90,6 +92,9 @@ public class DatabaseManager {
 
             stmt.execute("PRAGMA foreign_keys=ON;");
 
+            stmt.execute("PRAGMA journal_mode=WAL;");
+            stmt.execute("PRAGMA busy_timeout=20000;");
+
             for (String query : schema.split(";")) {
                 String trimmed = query.trim();
                 if (!trimmed.isEmpty()) {
@@ -111,6 +116,9 @@ public class DatabaseManager {
 
             stmt.execute("PRAGMA foreign_keys=ON;");
 
+            stmt.execute("PRAGMA journal_mode=WAL;");
+            stmt.execute("PRAGMA busy_timeout=20000;");
+
             Set<String> projectsColumns = getColumnSet(stmt, "projects");
             if (!projectsColumns.contains("last_run_date")) {
                 stmt.execute("ALTER TABLE projects ADD COLUMN last_run_date TEXT");
@@ -121,14 +129,14 @@ public class DatabaseManager {
                 stmt.execute("ALTER TABLE evaluation_results ADD COLUMN program_output TEXT");
             }
 
-try (ResultSet rs = stmt.executeQuery(
-        "SELECT name FROM sqlite_master WHERE type='table' AND name='evaluation_results'")) {
-    if (rs.next()) {
-        stmt.execute(
-                "CREATE UNIQUE INDEX IF NOT EXISTS idx_eval_results_project_student "
-                        + "ON evaluation_results(project_id, student_id)");
-    }
-}
+            try (ResultSet rs = stmt.executeQuery(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name='evaluation_results'")) {
+                if (rs.next()) {
+                    stmt.execute(
+                            "CREATE UNIQUE INDEX IF NOT EXISTS idx_eval_results_project_student "
+                                    + "ON evaluation_results(project_id, student_id)");
+                }
+            }
         }
     }
 

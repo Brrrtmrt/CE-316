@@ -44,9 +44,10 @@ public class CommandExecutor {
 
     private static final String os = System.getProperty("os.name").toLowerCase();
     private static final String separator = System.lineSeparator();
-    private static final long DEFAULT_TIMEOUT_SECONDS = 30; // TODO: DB config
-    
-    public record ExecutionOutput(int exitCode, String output) {}
+    private static final long DEFAULT_TIMEOUT_SECONDS = 10; // TODO: DB config
+
+    public record ExecutionOutput(int exitCode, String output) {
+    }
 
 
     /**
@@ -65,6 +66,7 @@ public class CommandExecutor {
 
         ProcessBuilder pb = createProcessBuilder(command, workingDirectory).redirectErrorStream(true); // Merge stderr into stdout
         Process process = pb.start();
+        process.getOutputStream().close(); // Close the stdin for process
 
         // Consume output to prevent deadlock
         Thread outputConsumer = new Thread(() -> {
@@ -103,26 +105,47 @@ public class CommandExecutor {
      * @throws InterruptedException if execution is interrupted
      */
     public ExecutionOutput executeAndCapture(String command, File workingDirectory) throws IOException, InterruptedException {
-
-        ProcessBuilder pb = createProcessBuilder(command, workingDirectory).redirectErrorStream(true); // Merge stderr into stdout
-
+        ProcessBuilder pb = createProcessBuilder(command, workingDirectory).redirectErrorStream(true);
         Process process = pb.start();
+        process.getOutputStream().close(); // Close the stdin for process
 
-        // Capture output
         StringBuilder output = new StringBuilder();
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                output.append(line).append(separator);
+        final int MAX_OUTPUT_CHARS = 1_000_000; // 1MB limit for OOM attacks
+
+        // Read output in fixed chunks to prevent single-line memory attacks
+        Thread outputReader = new Thread(() -> {
+            try (Reader reader = new InputStreamReader(process.getInputStream())) {
+                char[] buffer = new char[8192]; // 8KB
+                int charsRead;
+                boolean truncated = false;
+
+                while ((charsRead = reader.read(buffer)) != -1) {
+                    if (output.length() < MAX_OUTPUT_CHARS) {
+                        int spaceLeft = MAX_OUTPUT_CHARS - output.length();
+                        int toAppend = Math.min(charsRead, spaceLeft);
+                        output.append(buffer, 0, toAppend);
+
+                        if (output.length() >= MAX_OUTPUT_CHARS && !truncated) {
+                            output.append(separator).append("[TRUNCATED]").append(separator);
+                            truncated = true;
+                        }
+                    }
+                }
+            } catch (IOException e) {
+                // Don't care
             }
-        }
+        });
+        outputReader.start();
 
         boolean completed = process.waitFor(DEFAULT_TIMEOUT_SECONDS, TimeUnit.SECONDS);
 
         if (!completed) {
             process.destroyForcibly();
+            outputReader.interrupt();
             throw new IOException("Command timed out after " + DEFAULT_TIMEOUT_SECONDS + " seconds: " + command);
         }
+
+        outputReader.join(1000);
 
         return new ExecutionOutput(process.exitValue(), output.toString());
     }

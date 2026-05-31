@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+@Deprecated(forRemoval = true)
 public record Command(String executable, List<String> arguments, File workingDirectory) {
     public Command(String executable, List<String> arguments, File workingDirectory) {
         this.executable = executable;

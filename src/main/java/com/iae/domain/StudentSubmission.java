@@ -12,13 +12,10 @@ public class StudentSubmission {
     private Status submissionStatus;
     private EvaluationResult evaluationResult;
 
-    public StudentSubmission(String studentId, File zipFile) {
+    public StudentSubmission(String studentId, File zipFile, File extractedDir) {
         this.studentId = studentId;
         this.zipFile = zipFile;
-        String dirName = zipFile.getName().toLowerCase().endsWith(".zip")
-                ? zipFile.getName().substring(0, zipFile.getName().length() - 4)
-                : zipFile.getName();
-        this.extractedDir = new File(zipFile.getParentFile(), dirName);
+        this.extractedDir = extractedDir;
         this.evaluationResult = new EvaluationResult(studentId);
     }
 
