@@ -12,7 +12,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class CompareStepTest {
 
     private StudentSubmission withOutput(String output) {
-        StudentSubmission sub = new StudentSubmission("s1", new File("dummy.zip"));
+        StudentSubmission sub = new StudentSubmission("s1", new File("dummy.zip"),new File("dummy_dir"));
         sub.setProgramOutput(output);
         return sub;
     }
@@ -26,7 +26,7 @@ class CompareStepTest {
 
     @Test
     void nullProgramOutput_returnsError() {
-        StudentSubmission sub = new StudentSubmission("s1", new File("dummy.zip"));
+        StudentSubmission sub = new StudentSubmission("s1", new File("dummy.zip"),new File("dummy_dir"));
         StepResult result = new CompareStep(new ExactMatchStrategy(), "expected").execute(sub);
         assertFalse(result.isSuccess());
     }

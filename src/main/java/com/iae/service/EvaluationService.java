@@ -238,7 +238,7 @@ public class EvaluationService {
         }
     }
 
-    static class EvaluationStatistics {
+   public static class EvaluationStatistics {
         private final int totalCount;
         private final int passCount;
         private final int failCount;

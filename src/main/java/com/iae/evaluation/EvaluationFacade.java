@@ -10,6 +10,7 @@ import com.iae.infrastructure.CommandExecutor;
 import com.iae.infrastructure.FileSystemManager;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -144,9 +145,10 @@ public class EvaluationFacade {
      * @return evaluation result for this student
      */
     private EvaluationResult evaluateSubmission(File zipFile, Configuration config,
-                                                ComparisonStrategy strategy, Project project) {
+                                                ComparisonStrategy strategy, Project project) throws IOException {
         String studentId = extractStudentId(zipFile);
-        StudentSubmission submission = new StudentSubmission(studentId, zipFile);
+        File tempDir = fileSystemManager.createTempDirectory(studentId);
+        StudentSubmission submission = new StudentSubmission(studentId, zipFile, tempDir);
 
         EvaluationResult result = submission.getEvaluationResult(); // Link directly to the submission's built-in result
 
