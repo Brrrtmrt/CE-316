@@ -15,7 +15,7 @@ The Integrated Assignment Environment (IAE) is a lightweight, standalone desktop
 ## Prerequisites
 * **Java Development Kit (JDK):** Version 17 or higher.
 * **Apache Maven:** For dependency management and building.
-* *(Optional)* **WiX Toolset:** Required on Windows if you intend to build the native `.exe` installer using the `jpackage` tool.
+* *(Optional)* **WiX Toolset(3.14.*) https://github.com/wixtoolset/wix3/releases :** Required on Windows if you intend to build the native `.exe` installer using the `jpackage` tool.
 
 ## Build & Run Instructions
 
