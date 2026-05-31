@@ -179,7 +179,7 @@ public class MainController {
             return;
         }
 
-        try (java.io.InputStream in = getClass().getResourceAsStream("/help/manual.html")) {
+        try (java.io.InputStream in = getClass().getResourceAsStream("/help/manual.pdf")) {
             
             if (in == null) {
                 Alert alert = new Alert(Alert.AlertType.ERROR);
@@ -190,7 +190,7 @@ public class MainController {
                 return;
             }
             
-            java.io.File tempFile = java.io.File.createTempFile("iae_manual_", ".html");
+            java.io.File tempFile = java.io.File.createTempFile("iae_manual_", ".pdf");
             tempFile.deleteOnExit();
             java.nio.file.Files.copy(in, tempFile.toPath(), java.nio.file.StandardCopyOption.REPLACE_EXISTING);
             
